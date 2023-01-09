@@ -9,18 +9,22 @@ import "./App.css";
 
 const numChannels = 5;
 const plotSize = 100; // Number of points to show at once
-const plotResolution = 10; // Number of points to skip, lower is higher res
-const refreshRate = ((1/256)*1000); // 256Hz in ms
+const refreshRate = ((1000/256)); // 256Hz in ms
 const recordingTime = 5000; // in ms
 
 // var museDataGlobal = Array(numChannels).fill([]); // makes the waves square somehow???
 var museDataGlobal = [[],[],[],[],[]];
 var dataPointID = 0;
 var recordedCSV = [];
+var currentDataPoint = null;
+var plotResolution = 1; // Number of points to skip, lower is higher res
 
 var isRecordButtonHidden = true;
 var isConnectButtonHidden = true;
 var isCurrentlyRecording = false;
+
+
+// var tempLastMS2 = Date.now();
 
 
 
@@ -35,20 +39,27 @@ function App() {
   const [modalHidden, setModalHidden] = useState(false);
   const [recordButtonText, setRecordButtonText] = useState("Record");
 
-  // Update the chart
   useEffect(() => {
+    // Reading
     setInterval(() => {
-      var value = [Math.random(), Math.random(), Math.random(), Math.random(), Math.random()];
+      // console.log(`it took ${Date.now() - tempLastMS2}ms to generate point of the expected ${refreshRate}ms`);
+      // tempLastMS2 = Date.now();
+
+      currentDataPoint = [Math.random(), Math.random(), Math.random(), Math.random(), Math.random()];
+
+      // TODO: Read live data here;
+    }, refreshRate);
+
+
+    // Plotting
+    setInterval(() => {
+
+      // console.log(`it took ${Date.now() - tempLastMS}ms to plot`);
+      // tempLastMS = Date.now();
+
+
       dataPointID += 1;
       // console.log("md", museDataGlobal);
-
-      if(isCurrentlyRecording) {
-        recordedCSV.push(value);
-        console.log(recordedCSV.length);
-        if(recordedCSV.length >= (recordingTime/refreshRate)) { // recordingTime/refreshRate = number of samples to be recorded.
-          stopRecording();
-        }
-      }
 
       if(dataPointID % plotResolution != 0) {
         return; // skip every n = plotResolution points so that the plot "moves" slower
@@ -58,7 +69,7 @@ function App() {
         // Add the data to the array
         museDataGlobal[i].push({
           id: dataPointID,
-          e1: value[i],
+          e1: currentDataPoint[i],
         });
   
         // Shift the chart
@@ -77,8 +88,16 @@ function App() {
 
     }, refreshRate);
 
-
-    // setInterval(() => {console.log("main thing:", modalHidden)}, 1000);
+    // Recording
+    setInterval(() => {
+      if(isCurrentlyRecording) {
+        recordedCSV.push(currentDataPoint);
+        // console.log(recordedCSV.length);
+        if(recordedCSV.length >= (recordingTime/refreshRate)) { // recordingTime/refreshRate = number of samples to be recorded.
+          stopRecording();
+        }
+      }
+    }, refreshRate);
   }, []);
 
 
@@ -106,6 +125,7 @@ function App() {
       recordedCSV = []; // Reset
       setRecordButtonText("");
       isCurrentlyRecording = true;
+      plotResolution = 100; // Plot really slowly to save resources
     } else {
       console.error("Attempted to start recording while there was one in progress.");
     }
@@ -119,18 +139,18 @@ function App() {
     if(isCurrentlyRecording) {
       setRecordButtonText("Saving...");
       isCurrentlyRecording = false;
+      plotResolution = 1; // We can plot fast again
 
-      console.log("REC:", recordedCSV);
       await downloadCSV(recordedCSV);
 
-      setRecordButtonText("Record");
+      setTimeout(() => {setRecordButtonText("Record")}, 1000);
 
     } else {
       console.error("Attempted to stop recording while there wasn't one in progress.");
     }
   }
 
-  function downloadCSV(dataMatrix) {
+  async function downloadCSV(dataMatrix) {
     let csvContent = "data:text/csv;charset=utf-8," + dataMatrix.map(e => e.join(",")).join("\n");
 
     var encodedUri = encodeURI(csvContent);
@@ -236,7 +256,7 @@ function App() {
 
         {/* should we allow stop or just record fixed interval?? */}
         <div
-          className={`App-button App-button-record App-position-lower-right ${isRecordButtonHidden ? "App-hidden" : ""}`}
+          className={`App-button App-button-record App-position-lower-right ${isRecordButtonHidden ? "App-hidden" : ""} ${isCurrentlyRecording ? "" : "App-button-record-hover-allowed"}`}
           onClick={beginRecording}
         >
           <div className={`${isCurrentlyRecording ? "App-hidden" : ""}`}>{recordButtonText}</div>

@@ -79,7 +79,7 @@ body {
   color: var(--negative-color);
 }
 
-.App-button-record:hover {
+.App-button-record-hover-allowed:hover {
   background-color: var(--negative-color);
   color: var(--modal-bg-color);
 }
