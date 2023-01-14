@@ -30,7 +30,13 @@ const options = {
     },
     y: {
       display: false,
-    }
+    },
+    // yAxes: {
+    //   ticks: {
+    //     suggestedMin: 0,
+    //     suggestedMax: 1000,
+    //   }
+    // }
   },
   animation: {
     duration: 0

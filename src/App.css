@@ -100,33 +100,10 @@ body {
   position: fixed;
 }
 
-/* .App-circle {
-  position: fixed;
-  top: 25px;
-  right: 25px;
-} */
-
-/* .App-circle-fill {
-  width: 25px;
-  height: 25px;
-  border-radius: 100px;
-  border: 3px solid var(--disabled-color);
-
-  
-  animation-name: fillCircle;
-  animation-duration: 2s;
-  animation-delay: 0s;
-  animation-fill-mode: forwards;
-
-  animation: fillCircle 4s reverse;
-  transform: rotate(-90deg);
-  transform-origin: center;
-} */
-
 .App-recording-circle {
   width: 25px;
   height: 25px;
-  border-radius: 100px;
+  border-radius: 50%;
   background-color: var(--negative-color);
 
   position: relative;
@@ -138,6 +115,34 @@ body {
   animation-iteration-count: infinite;
 }
 
+.App-connecting-circle {
+  width: 48px;
+  height: 48px;
+  display: inline-block;
+
+  position: relative;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.App-connecting-circle::after,
+.App-connecting-circle::before {
+  content: '';  
+  box-sizing: border-box;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 2px solid var(--positive-color);
+  position: absolute;
+  left: 0;
+  top: 0;
+  animation: connectingPulse 2s linear infinite;
+}
+.App-connecting-circle::after {
+  animation-delay: 1s;
+}
+
+
+
 
 
 .Modal-background {
@@ -148,7 +153,6 @@ body {
   position: absolute;
   border-radius: 50px;
   backdrop-filter: blur(7.5px);
-
   
   -webkit-box-shadow: 0px 0px 32px 6px rgba(0,0,0,0.5); 
   box-shadow: 0px 0px 32px 6px rgba(0,0,0,0.5);
@@ -223,6 +227,10 @@ body {
   -ms-user-select: none;
   user-select: none;
 
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+
   transition: background-color 0.2s ease-in-out, transform 0.2s ease-in-out;
 }
 
@@ -236,7 +244,12 @@ body {
   margin-left: 15px;
 }
 
-.Modal-button-primary:hover {
+/* .Modal-button-primary:hover {
+  background-color: var(--positive-color);
+  color: var(--modal-bg-color);
+} */
+
+.Modal-button-primary-hover-allowed:hover {
   background-color: var(--positive-color);
   color: var(--modal-bg-color);
 }
@@ -291,6 +304,17 @@ body {
   }
   100% {
     opacity: 100%;
+  }
+}
+
+@keyframes connectingPulse {
+  0% {
+    transform: scale(0);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0;
   }
 }
 

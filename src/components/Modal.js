@@ -9,6 +9,7 @@ class Modal extends React.Component {
     this.primaryButtonOnClick   = props.primaryButtonOnClick   || function() {alert("No action assigned");};
     this.secondaryButtonText    = props.secondaryButtonText    || "Secondary Button";
     this.secondaryButtonOnClick = props.secondaryButtonOnClick || function() {alert("No action assigned");};
+    this.isConnecting           = props.isConnecting           || false;
     this.hidden                 = props.hidden                 || false;
   }
 
@@ -19,7 +20,10 @@ class Modal extends React.Component {
         <div className="Modal-body">{this.body}</div>
   
         <div className="Modal-button-container">
-          <div className="Modal-button Modal-button-primary" onClick={this.primaryButtonOnClick}>{this.primaryButtonText}</div>
+          <div className={`Modal-button Modal-button-primary ${this.props.isConnecting ? "" : "Modal-button-primary-hover-allowed"}`} onClick={this.primaryButtonOnClick}>
+            <div className={`${this.props.isConnecting ? "App-hidden" : ""}`}>{this.primaryButtonText}</div>
+            <div className={`${this.props.isConnecting ? "" : "App-hidden"} App-connecting-circle`}></div>
+          </div>
           <div className="Modal-button Modal-button-secondary" onClick={this.secondaryButtonOnClick}>{this.secondaryButtonText}</div>
         </div>
       </div>

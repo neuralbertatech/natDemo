@@ -1,9 +1,9 @@
-import { useState } from "react";
-import { useEffect } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { MuseClient } from 'muse-js';
 import LineChart from "./components/LineChart";
 import Modal from "./components/Modal";
 import logo from './static/logo.svg';
+// import connect from museConnect;
 import "./App.css";
 
 
@@ -17,47 +17,54 @@ var museDataGlobal = [[],[],[],[],[]];
 var dataPointID = 0;
 var recordedCSV = [];
 var currentDataPoint = null;
-var plotResolution = 1; // Number of points to skip, lower is higher res
+// var plotResolution = 1; // Number of points to skip, lower is higher res
+var plotResolution = 1;
 
 var isRecordButtonHidden = true;
 var isConnectButtonHidden = true;
 var isCurrentlyRecording = false;
+var isUsingRandomData = true;
 
-
-// var tempLastMS2 = Date.now();
-
+var lasttime = Date.now();
 
 
 function App() {
-  // const [charts, setCharts] = useState({
-  //   museData: museDataGlobal,
-  //   chartColors: chartColors
-  // });
-
   const [museData, setMuseData] = useState(museDataGlobal);
   const [chartColors, setChartColors] = useState(['#7967e1', '#527ae8', '#2689e7', '#0095e0', '#1b9fd6']);
   const [modalHidden, setModalHidden] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
   const [recordButtonText, setRecordButtonText] = useState("Record");
 
+  const counter = useMemo(
+    () => new Worker(new URL("./workerFile.js", import.meta.url)),
+    []
+  );
+
   useEffect(() => {
-    // Reading
+    // var worker = new Worker('/workers/workerFile.js');
+
+    // worker.addEventListener('message', function(e) {
+    //   console.log(e.data);
+    // });
+
+    // worker.postMessage('Happy Birthday');
+
+    if (window.Worker) {
+      counter.postMessage("Hello!");
+    }
+
+
+
+    // Random Data Generation
     setInterval(() => {
-      // console.log(`it took ${Date.now() - tempLastMS2}ms to generate point of the expected ${refreshRate}ms`);
-      // tempLastMS2 = Date.now();
-
-      currentDataPoint = [Math.random(), Math.random(), Math.random(), Math.random(), Math.random()];
-
-      // TODO: Read live data here;
+      if(isUsingRandomData) {
+        currentDataPoint = [Math.random(), Math.random(), Math.random(), Math.random(), Math.random()];
+      }
     }, refreshRate);
 
 
     // Plotting
     setInterval(() => {
-
-      // console.log(`it took ${Date.now() - tempLastMS}ms to plot`);
-      // tempLastMS = Date.now();
-
-
       dataPointID += 1;
       // console.log("md", museDataGlobal);
 
@@ -172,24 +179,36 @@ function App() {
     // await client.start();
 
 
-    console.log("short return, pretend we succeeded");
-    dismissModalConnect();
-    return;
+    // console.log("short return, pretend we succeeded");
+    // dismissModalConnect();
+    // return;
 
     try {
-      // Connect with the Muse EEG Client
-      // setStatus(generalTranslations.connecting);
-      console.warn("connecting...")
+      // Begin connecting
+      setIsConnecting(true);
+
+      // Connect
       window.headset = new MuseClient();
       window.headset.enableAux = window.enableAux;
       await window.headset.connect();
       await window.headset.start();
       window.headset.eegReadings$ = window.headset.eegReadings; // why??
-      // setStatus(generalTranslations.connected);
-      alert("connected");
 
+
+      // Connected successfully
+      dismissModalConnect();
+      isUsingRandomData = false;
+      setTimeout(() => {setIsConnecting(false);}, 1000); // Timeout so that the connection animation is smooth
+
+
+      // Setup the subscription to data
       window.headset.eegReadings.subscribe(reading => {
-        console.log(reading.samples);
+        console.log(`time ${Date.now() - lasttime}ms`);
+        lasttime = Date.now();
+
+        var s = reading.samples;
+        currentDataPoint = [s[0], s[1], s[2], s[3], s[4]];
+        // console.log(s);
       });
 
       // window.headset.telemetryData.subscribe(telemetry => {
@@ -210,7 +229,7 @@ function App() {
       // }
 
     } catch (err) {
-      // setStatus(generalTranslations.connect);
+      setIsConnecting(false);
       console.error("Connection error: " + err);
     }
   }
@@ -232,6 +251,7 @@ function App() {
           primaryButtonOnClick={connect}
           secondaryButtonText={"Simulate"}
           secondaryButtonOnClick={dismissModalSimulate}
+          isConnecting={isConnecting}
           hidden={modalHidden}
         />
 
