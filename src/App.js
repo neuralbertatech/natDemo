@@ -20,9 +20,10 @@ var dataPointID = 0;
 var recordedCSV = [];
 var currentDataPoint = null;
 
-var plotResolution = 16; // Number of points to skip, lower is higher res
+var plotResolution = 1; // Number of points to skip, lower is higher res
 var lastNPlotTimes = [];
 var plotResolutionUpdateFrequency = 100;
+var plotResolutionWindow = 100;
 var plotResolutionCount = 0;
 
 var isRecordButtonHidden = true;
@@ -43,42 +44,34 @@ function App() {
   const [isConnecting, setIsConnecting] = useState(false);
   const [recordButtonText, setRecordButtonText] = useState("Record");
 
-  // const counter = useMemo(
-  //   () => new Worker(new URL("./workerFile.js", import.meta.url)),
-  //   []
-  // );
 
   useEffect(() => {
 
-
-
     // Random Data Generation
     setInterval(() => {
+      if(isDataSimulated) {
+        currentDataPoint = [Math.random(), Math.random(), Math.random(), Math.random(), Math.random()];
+      }
+    }, refreshRate);
 
-      // Vary the plotting rate for performance reasons
+
+
+    // Vary the plotting rate for performance reasons
+    setInterval(() => {
       lastNPlotTimes.push(window.performance.now()-lastTime);
-      if(lastNPlotTimes.length >= 500) {lastNPlotTimes.shift();}
+      if(lastNPlotTimes.length >= plotResolutionWindow) {lastNPlotTimes.shift();}
       var lastNavg = lastNPlotTimes.reduce((a, b) => a + b, 0) / lastNPlotTimes.length;
 
-      console.log(`${window.performance.now()-lastTime}ms | ${lastNavg} | ${plotResolution}`);
+      console.log(`${(window.performance.now()-lastTime).toFixed(5)}ms`.padEnd(15) + "| " +  `${lastNavg.toFixed(5)}`.padEnd(10) + "| " + `${plotResolution}`);
 
       lastTime = window.performance.now();
 
       if(plotResolutionCount % plotResolutionUpdateFrequency == 0) {
-        if(lastNavg > refreshRate+2) {
-          plotResolution += 1;
-        }
-        else if (lastNavg < refreshRate+1) {
-          plotResolution -= 1;
-        }
+        if(lastNavg > refreshRate+2) { plotResolution += 1; }
+        else if (lastNavg < refreshRate+1) { plotResolution -= 1; }
         plotResolutionCount = 0;
       }
       plotResolutionCount += 1;
-
-
-      if(isDataSimulated) {
-        currentDataPoint = [Math.random(), Math.random(), Math.random(), Math.random(), Math.random()];
-      }
     }, refreshRate);
 
 
