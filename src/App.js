@@ -6,6 +6,8 @@ import logo from './static/logo.svg';
 // import connect from museConnect;
 import "./App.css";
 
+// import museWorker from "./workerFile.js";
+
 
 const numChannels = 5;
 const plotSize = 100; // Number of points to show at once
@@ -17,15 +19,17 @@ var museDataGlobal = [[],[],[],[],[]];
 var dataPointID = 0;
 var recordedCSV = [];
 var currentDataPoint = null;
-// var plotResolution = 1; // Number of points to skip, lower is higher res
-var plotResolution = 1;
+var plotResolution = 1; // Number of points to skip, lower is higher res
 
 var isRecordButtonHidden = true;
 var isConnectButtonHidden = true;
 var isCurrentlyRecording = false;
-var isUsingRandomData = true;
+var isDataSimulated = true;
 
-var lasttime = Date.now();
+// var worker = undefined;
+var headset = undefined;
+
+var lastTime = window.performance.now();
 
 
 function App() {
@@ -35,29 +39,21 @@ function App() {
   const [isConnecting, setIsConnecting] = useState(false);
   const [recordButtonText, setRecordButtonText] = useState("Record");
 
-  const counter = useMemo(
-    () => new Worker(new URL("./workerFile.js", import.meta.url)),
-    []
-  );
+  // const counter = useMemo(
+  //   () => new Worker(new URL("./workerFile.js", import.meta.url)),
+  //   []
+  // );
 
   useEffect(() => {
-    // var worker = new Worker('/workers/workerFile.js');
-
-    // worker.addEventListener('message', function(e) {
-    //   console.log(e.data);
-    // });
-
-    // worker.postMessage('Happy Birthday');
-
-    if (window.Worker) {
-      counter.postMessage("Hello!");
-    }
 
 
 
     // Random Data Generation
     setInterval(() => {
-      if(isUsingRandomData) {
+      console.log(`${window.performance.now()-lastTime}ms`)
+      lastTime = window.performance.now()
+
+      if(isDataSimulated) {
         currentDataPoint = [Math.random(), Math.random(), Math.random(), Math.random(), Math.random()];
       }
     }, refreshRate);
@@ -187,29 +183,82 @@ function App() {
       // Begin connecting
       setIsConnecting(true);
 
+
+      // worker = new Worker(museWorker);
+      // // worker.onmessage = ev => {
+      // //   console.log("got data back from worker");
+      // //   console.log(ev);
+      // // };
+
+      // worker.postMessage("start");
+
+      // // Connect
+      // window.headset = new MuseClient();
+      // window.headset.enableAux = window.enableAux;
+      // await window.headset.connect();
+      // await window.headset.start();
+      // window.headset.eegReadings$ = window.headset.eegReadings; // why??
+
+      // // Setup the subscription to data
+      // window.headset.eegReadings.subscribe(reading => {
+      //   console.log(`time ${Date.now() - lasttime}ms`);
+      //   lasttime = Date.now();
+
+      //   var s = reading.samples;
+      //   currentDataPoint = [s[0], s[1], s[2], s[3], s[4]];
+      //   // console.log(s);
+      // });
+
+
+
+
+
       // Connect
-      window.headset = new MuseClient();
-      window.headset.enableAux = window.enableAux;
-      await window.headset.connect();
-      await window.headset.start();
-      window.headset.eegReadings$ = window.headset.eegReadings; // why??
-
-
-      // Connected successfully
-      dismissModalConnect();
-      isUsingRandomData = false;
-      setTimeout(() => {setIsConnecting(false);}, 1000); // Timeout so that the connection animation is smooth
-
+      headset = new MuseClient();
+      await headset.connect();
+      await headset.start();
+      headset.eegReadings$ = headset.eegReadings;      
 
       // Setup the subscription to data
-      window.headset.eegReadings.subscribe(reading => {
-        console.log(`time ${Date.now() - lasttime}ms`);
-        lasttime = Date.now();
+      headset.eegReadings.subscribe(reading => {
+        // console.log(`${Date.now() - lasttime}ms`);
+        // lasttime = Date.now();
 
         var s = reading.samples;
         currentDataPoint = [s[0], s[1], s[2], s[3], s[4]];
         // console.log(s);
       });
+
+
+      // worker = new Worker(museWorker);
+      // worker.postMessage({messageType: "connectHeadset", contents: headset});
+
+
+
+
+
+
+      // Create worker, wait for message back saying it is connected...
+      // worker = new Worker(new URL("../src/museWorker.js", import.meta.url), { type: "module" });
+
+      // console.log("worker", worker);
+      
+      // worker.onmessage = function(e) {
+      //   console.log("got data back from worker", e);
+      // };
+      
+      
+      // setTimeout(() => {        
+      //   worker.postMessage({messageType: "connectHeadset", contents: "hello"});
+      // }, 1000);
+
+
+      // Connected successfully
+      dismissModalConnect();
+      isDataSimulated = false;
+      setTimeout(() => {setIsConnecting(false);}, 1000); // Timeout so that the connection animation is smooth
+
+
 
       // window.headset.telemetryData.subscribe(telemetry => {
       //   console.log(telemetry);
@@ -218,15 +267,6 @@ function App() {
       //   console.log(acceleration);
       // });
 
-
-
-      // if (
-      //   window.headset.connectionStatus.value === true &&
-      //   window.headset.eegReadings$
-      // ) {
-      //   buildPipes(selected);
-      //   subscriptionSetup(selected);
-      // }
 
     } catch (err) {
       setIsConnecting(false);
@@ -254,6 +294,11 @@ function App() {
           isConnecting={isConnecting}
           hidden={modalHidden}
         />
+
+
+        <div className="App-position-top-right">
+          <div className="App-data-type-text">{isDataSimulated ? 'Simulated Data' : 'Live Data'}</div>
+        </div>
 
 
         {/* TODO make this a for loop??? */}

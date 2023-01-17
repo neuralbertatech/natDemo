@@ -3,11 +3,15 @@ import { Line } from "react-chartjs-2";
 import { Chart as ChartJS } from "chart.js/auto";
 
 const options = {
-  maintainAspectRatio : false,
+  maintainAspectRatio: false,
+  animation: false,
 
   plugins: {
     legend: {
       display: false
+    },
+    decimation: {
+      enabled: true
     }
   },
 
@@ -38,9 +42,9 @@ const options = {
     //   }
     // }
   },
-  animation: {
-    duration: 0
-  },
+  // animation: {
+  //   duration: 0
+  // },
 };
 
 
