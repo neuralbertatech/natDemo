@@ -19,7 +19,11 @@ var museDataGlobal = [[],[],[],[],[]];
 var dataPointID = 0;
 var recordedCSV = [];
 var currentDataPoint = null;
-var plotResolution = 1; // Number of points to skip, lower is higher res
+
+var plotResolution = 16; // Number of points to skip, lower is higher res
+var lastNPlotTimes = [];
+var plotResolutionUpdateFrequency = 100;
+var plotResolutionCount = 0;
 
 var isRecordButtonHidden = true;
 var isConnectButtonHidden = true;
@@ -50,8 +54,27 @@ function App() {
 
     // Random Data Generation
     setInterval(() => {
-      console.log(`${window.performance.now()-lastTime}ms`)
-      lastTime = window.performance.now()
+
+      // Vary the plotting rate for performance reasons
+      lastNPlotTimes.push(window.performance.now()-lastTime);
+      if(lastNPlotTimes.length >= 500) {lastNPlotTimes.shift();}
+      var lastNavg = lastNPlotTimes.reduce((a, b) => a + b, 0) / lastNPlotTimes.length;
+
+      console.log(`${window.performance.now()-lastTime}ms | ${lastNavg} | ${plotResolution}`);
+
+      lastTime = window.performance.now();
+
+      if(plotResolutionCount % plotResolutionUpdateFrequency == 0) {
+        if(lastNavg > refreshRate+2) {
+          plotResolution += 1;
+        }
+        else if (lastNavg < refreshRate+1) {
+          plotResolution -= 1;
+        }
+        plotResolutionCount = 0;
+      }
+      plotResolutionCount += 1;
+
 
       if(isDataSimulated) {
         currentDataPoint = [Math.random(), Math.random(), Math.random(), Math.random(), Math.random()];
@@ -128,7 +151,7 @@ function App() {
       recordedCSV = []; // Reset
       setRecordButtonText("");
       isCurrentlyRecording = true;
-      plotResolution = 100; // Plot really slowly to save resources
+      // plotResolution = 100; // Plot really slowly to save resources
     } else {
       console.error("Attempted to start recording while there was one in progress.");
     }
@@ -142,7 +165,7 @@ function App() {
     if(isCurrentlyRecording) {
       setRecordButtonText("Saving...");
       isCurrentlyRecording = false;
-      plotResolution = 1; // We can plot fast again
+      // plotResolution = 1; // We can plot fast again
 
       await downloadCSV(recordedCSV);
 

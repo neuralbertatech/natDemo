@@ -49,8 +49,6 @@ const options = {
 
 
 function LineChart(args) {
-  // console.log("dt:", args) // museData, color
-
   const museData = args.chartData || [];
   const color = args.chartColor || '#7967e1';
 
@@ -69,7 +67,15 @@ function LineChart(args) {
       },
     ],
   }
+
+  // const canvas = new HTMLCanvasElement();
+  // const offscreenCanvas = canvas.transferControlToOffscreen();
+
+  // const worker = new Worker(new URL("chartWorker.js", import.meta.url));
+  // worker.postMessage({canvas: offscreenCanvas, options}, [offscreenCanvas]);
+
   return <Line data={chartData} options={options}/>;
+  // return canvas;
 }
 
 export default LineChart;
