@@ -20,12 +20,12 @@ var dataPointID = 0;
 var recordedCSV = [];
 var currentDataPoint = null;
 
-var plotResolution = 1; // Number of points to skip, lower is higher res
+var plotResolution = 3; // Number of points to skip, lower is higher res
 var lastNPlotTimes = [];
 var plotResolutionUpdateFrequency = 100;
 var plotResolutionWindow = 100;
 var plotResolutionCount = 0;
-var minPlotResolution = 1;
+var minPlotResolution = 3;
 var maxPlotResolution = 200;
 
 var isRecordButtonHidden = true;
