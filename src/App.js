@@ -25,6 +25,8 @@ var lastNPlotTimes = [];
 var plotResolutionUpdateFrequency = 100;
 var plotResolutionWindow = 100;
 var plotResolutionCount = 0;
+var minPlotResolution = 1;
+var maxPlotResolution = 200;
 
 var isRecordButtonHidden = true;
 var isConnectButtonHidden = true;
@@ -60,15 +62,15 @@ function App() {
     setInterval(() => {
       lastNPlotTimes.push(window.performance.now()-lastTime);
       if(lastNPlotTimes.length >= plotResolutionWindow) {lastNPlotTimes.shift();}
-      var lastNavg = lastNPlotTimes.reduce((a, b) => a + b, 0) / lastNPlotTimes.length;
+      var lastNAvg = lastNPlotTimes.reduce((a, b) => a + b, 0) / lastNPlotTimes.length;
 
-      console.log(`${(window.performance.now()-lastTime).toFixed(5)}ms`.padEnd(15) + "| " +  `${lastNavg.toFixed(5)}`.padEnd(10) + "| " + `${plotResolution}`);
+      console.log(`${(window.performance.now()-lastTime).toFixed(5)}ms`.padEnd(15) + "| " +  `${lastNAvg.toFixed(5)}`.padEnd(10) + "| " + `${plotResolution}`);
 
       lastTime = window.performance.now();
 
       if(plotResolutionCount % plotResolutionUpdateFrequency == 0) {
-        if(lastNavg > refreshRate+2) { plotResolution += 1; }
-        else if (lastNavg < refreshRate+1) { plotResolution -= 1; }
+        if(      lastNAvg > refreshRate+2 && plotResolution < maxPlotResolution) { plotResolution += 1; }
+        else if (lastNAvg < refreshRate+1 && plotResolution > minPlotResolution) { plotResolution -= 1; }
         plotResolutionCount = 0;
       }
       plotResolutionCount += 1;
