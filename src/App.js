@@ -3,11 +3,9 @@ import { MuseClient } from 'muse-js';
 import LineChart from "./components/LineChart";
 import Modal from "./components/Modal";
 import logo from './static/logo.svg';
-// import connect from museConnect;
 import "./App.css";
 
 // import museWorker from "./workerFile.js";
-
 
 const numChannels = 5;
 const plotSize = 100; // Number of points to show at once
@@ -56,6 +54,17 @@ function App() {
       }
     }, refreshRate);
 
+    // Reading Data From Muse is Handled in its Own Subscription
+
+    // Recording
+    setInterval(() => {
+      if(isCurrentlyRecording) {
+        recordedCSV.push(currentDataPoint);
+        if(recordedCSV.length >= (recordingTime/refreshRate)) { // recordingTime/refreshRate = number of samples to be recorded.
+          stopRecording();
+        }
+      }
+    }, refreshRate);
 
 
     // Vary the plotting rate for performance reasons
@@ -69,8 +78,8 @@ function App() {
       lastTime = window.performance.now();
 
       if(plotResolutionCount % plotResolutionUpdateFrequency == 0) {
-        if(      lastNAvg > refreshRate+2 && plotResolution < maxPlotResolution) { plotResolution += 1; }
-        else if (lastNAvg < refreshRate+1 && plotResolution > minPlotResolution) { plotResolution -= 1; }
+        if      ( lastNAvg > refreshRate+2 && plotResolution < maxPlotResolution ) { plotResolution += 1; }
+        else if ( lastNAvg < refreshRate+1 && plotResolution > minPlotResolution ) { plotResolution -= 1; }
         plotResolutionCount = 0;
       }
       plotResolutionCount += 1;
@@ -80,10 +89,8 @@ function App() {
     // Plotting
     setInterval(() => {
       dataPointID += 1;
-      // console.log("md", museDataGlobal);
-
       if(dataPointID % plotResolution != 0) {
-        return; // skip every n = plotResolution points so that the plot "moves" slower
+        return; // skip every n = plotResolution points for performance reasons
       }
 
       for(var i = 0; i < numChannels; i++) {
@@ -99,25 +106,8 @@ function App() {
         }
       }
 
-
       // Set the data
-      setMuseData([...museDataGlobal]); // need to do so the ... so react thinks its new
-      // setCharts({
-      //   museData: [...museDataGlobal],
-      //   chartColors: chartColors
-      // }); // need to do so the ... so react thinks its new
-
-    }, refreshRate);
-
-    // Recording
-    setInterval(() => {
-      if(isCurrentlyRecording) {
-        recordedCSV.push(currentDataPoint);
-        // console.log(recordedCSV.length);
-        if(recordedCSV.length >= (recordingTime/refreshRate)) { // recordingTime/refreshRate = number of samples to be recorded.
-          stopRecording();
-        }
-      }
+      setMuseData([...museDataGlobal]); // need to do so the ... so React thinks its new
     }, refreshRate);
   }, []);
 
@@ -125,8 +115,7 @@ function App() {
   function dismissModalSimulate() {
     setModalHidden(true);
     isRecordButtonHidden = true;
-    isConnectButtonHidden = false; // to allow for connecting later
-    // Actually start showing simulated data maybe?????
+    isConnectButtonHidden = false;
   }
 
   function dismissModalConnect() {
@@ -146,12 +135,11 @@ function App() {
       recordedCSV = []; // Reset
       setRecordButtonText("");
       isCurrentlyRecording = true;
-      // plotResolution = 100; // Plot really slowly to save resources
     } else {
-      console.error("Attempted to start recording while there was one in progress.");
+      console.error("Attempted to start recording while there was a recording in progress.");
     }
 
-    // setTimeout(() => { // Old way to stop recording. Now we stop the recording at a specified number of samples.
+    // setTimeout(() => { // If we want to allow users to terminate recording
     //   toggleRecording();
     // }, recordingTime);
   }
@@ -160,14 +148,13 @@ function App() {
     if(isCurrentlyRecording) {
       setRecordButtonText("Saving...");
       isCurrentlyRecording = false;
-      // plotResolution = 1; // We can plot fast again
 
       await downloadCSV(recordedCSV);
 
       setTimeout(() => {setRecordButtonText("Record")}, 1000);
 
     } else {
-      console.error("Attempted to stop recording while there wasn't one in progress.");
+      console.error("Attempted to stop recording while nothing was in progress.");
     }
   }
 
@@ -188,48 +175,9 @@ function App() {
 
   // TODO import this
   async function connect() {
-    // let client = new MuseClient();
-    // await client.connect();
-    // await client.start();
-
-
-    // console.log("short return, pretend we succeeded");
-    // dismissModalConnect();
-    // return;
-
     try {
       // Begin connecting
       setIsConnecting(true);
-
-
-      // worker = new Worker(museWorker);
-      // // worker.onmessage = ev => {
-      // //   console.log("got data back from worker");
-      // //   console.log(ev);
-      // // };
-
-      // worker.postMessage("start");
-
-      // // Connect
-      // window.headset = new MuseClient();
-      // window.headset.enableAux = window.enableAux;
-      // await window.headset.connect();
-      // await window.headset.start();
-      // window.headset.eegReadings$ = window.headset.eegReadings; // why??
-
-      // // Setup the subscription to data
-      // window.headset.eegReadings.subscribe(reading => {
-      //   console.log(`time ${Date.now() - lasttime}ms`);
-      //   lasttime = Date.now();
-
-      //   var s = reading.samples;
-      //   currentDataPoint = [s[0], s[1], s[2], s[3], s[4]];
-      //   // console.log(s);
-      // });
-
-
-
-
 
       // Connect
       headset = new MuseClient();
@@ -239,23 +187,23 @@ function App() {
 
       // Setup the subscription to data
       headset.eegReadings.subscribe(reading => {
-        // console.log(`${Date.now() - lasttime}ms`);
-        // lasttime = Date.now();
-
         var s = reading.samples;
         currentDataPoint = [s[0], s[1], s[2], s[3], s[4]];
         // console.log(s);
       });
 
 
-      // worker = new Worker(museWorker);
-      // worker.postMessage({messageType: "connectHeadset", contents: headset});
+      // -- IF WE WANT OTHER MUSE DATA -- //
+      // window.headset.telemetryData.subscribe(telemetry => {
+      //   console.log(telemetry);
+      // });
+      // window.headset.accelerometerData.subscribe(acceleration => {
+      //   console.log(acceleration);
+      // });
+      // -- IF WE WANT OTHER MUSE DATA -- //
 
 
-
-
-
-
+      // -- DOES NOT WORK -- //
       // Create worker, wait for message back saying it is connected...
       // worker = new Worker(new URL("../src/museWorker.js", import.meta.url), { type: "module" });
 
@@ -265,27 +213,17 @@ function App() {
       //   console.log("got data back from worker", e);
       // };
       
-      
       // setTimeout(() => {        
       //   worker.postMessage({messageType: "connectHeadset", contents: "hello"});
       // }, 1000);
+      // -- DOES NOT WORK -- //
 
 
       // Connected successfully
       dismissModalConnect();
       isDataSimulated = false;
       setTimeout(() => {setIsConnecting(false);}, 1000); // Timeout so that the connection animation is smooth
-
-
-
-      // window.headset.telemetryData.subscribe(telemetry => {
-      //   console.log(telemetry);
-      // });
-      // window.headset.accelerometerData.subscribe(acceleration => {
-      //   console.log(acceleration);
-      // });
-
-
+      
     } catch (err) {
       setIsConnecting(false);
       console.error("Connection error: " + err);
