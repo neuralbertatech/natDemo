@@ -11,6 +11,7 @@ const numChannels = 5;
 const plotSize = 100; // Number of points to show at once
 const refreshRate = ((1000/256)); // 256Hz in ms
 const recordingTime = 5000; // in ms
+const verbose = false;
 
 // var museDataGlobal = Array(numChannels).fill([]); // makes the waves square somehow???
 var museDataGlobal = [[],[],[],[],[]];
@@ -38,6 +39,7 @@ var lastTime = window.performance.now();
 
 
 function App() {
+  const [generatedWaves, setGeneratedWaves] = useState([[],[],[],[],[]]); // For Generating Static Sample Waves
   const [museData, setMuseData] = useState(museDataGlobal);
   const [chartColors, setChartColors] = useState(['#7967e1', '#527ae8', '#2689e7', '#0095e0', '#1b9fd6']);
   const [modalHidden, setModalHidden] = useState(false);
@@ -46,6 +48,16 @@ function App() {
 
 
   useEffect(() => {
+
+    // For Generating Static Sample Waves
+    // var numSamples = 7;
+    // setGeneratedWaves([
+    //   generateWave(30, 40, numSamples, plotSize),
+    //   generateWave(13, 30, numSamples, plotSize),
+    //   generateWave(8, 13, numSamples, plotSize),
+    //   generateWave(4, 8, numSamples, plotSize),
+    //   generateWave(1, 4, numSamples, plotSize)
+    // ]);
 
     // Random Data Generation
     setInterval(() => {
@@ -73,7 +85,9 @@ function App() {
       if(lastNPlotTimes.length >= plotResolutionWindow) {lastNPlotTimes.shift();}
       var lastNAvg = lastNPlotTimes.reduce((a, b) => a + b, 0) / lastNPlotTimes.length;
 
-      console.log(`${(window.performance.now()-lastTime).toFixed(5)}ms`.padEnd(15) + "| " +  `${lastNAvg.toFixed(5)}`.padEnd(10) + "| " + `${plotResolution}`);
+      if(verbose) {
+        console.log(`${(window.performance.now()-lastTime).toFixed(5)}ms`.padEnd(15) + "| " +  `${lastNAvg.toFixed(5)}`.padEnd(10) + "| " + `${plotResolution}`);
+      }
 
       lastTime = window.performance.now();
 
@@ -230,10 +244,47 @@ function App() {
     }
   }
 
+  function generateWave(minFreq, maxFreq, numLayers, nPoints) {
+    // Create range
+    var time = [...Array(nPoints).keys()].map(x => x);
+    var wave = [...Array(nPoints).keys()].map(x => 0);
+
+    // Generate n layers
+    for(var i = 0; i < numLayers; i++) {
+
+      // Create wave
+      var freq = randomFromInterval(minFreq, maxFreq);
+      var amp = randomFromInterval(1, 100);
+      var currentWave = time.map(x => Math.sin((x/100) * freq * Math.PI) * amp);
+      
+      // Add together with the existing wave
+      for(var j = 0; j < nPoints; j++) {
+        wave[j] += currentWave[j];
+      }
+    }
+
+    // Convert wave to the output shape the chart wants
+    var waveOut = []
+    for(var j = 0; j < nPoints; j++) {
+      waveOut.push({
+        id: j,
+        e1: wave[j],
+      })
+    }
+
+    return waveOut;
+  }
+
+  function randomFromInterval(min, max) { // min and max included 
+    return Math.random() * (max - min + 1) + min
+  }
+
+
+
   return (
     <div className="App">
       <header className="App-header">
-        <a href="https://neuralberta.tech" target="_blank" rel="noopener noreferrer">
+        <a href="https://neuralberta.tech" rel="noopener noreferrer">
           <img src={logo} className="App-logo" alt="logo" />
         </a>
       </header>
@@ -273,6 +324,23 @@ function App() {
         <div className="App-chart-container">
           <LineChart chartData={museData[4]} chartColor={chartColors[4]} />
         </div>
+
+        {/* For Generating Static Sample Waves */}
+        {/* <div className="App-chart-container">
+          <LineChart chartData={generatedWaves[0]} chartColor={chartColors[0]} />
+        </div>
+        <div className="App-chart-container">
+          <LineChart chartData={generatedWaves[1]} chartColor={chartColors[1]} />
+        </div>
+        <div className="App-chart-container">
+          <LineChart chartData={generatedWaves[2]} chartColor={chartColors[2]} />
+        </div>
+        <div className="App-chart-container">
+          <LineChart chartData={generatedWaves[3]} chartColor={chartColors[3]} />
+        </div>
+        <div className="App-chart-container">
+          <LineChart chartData={generatedWaves[4]} chartColor={chartColors[4]} />
+        </div> */}
 
 
         {/* should we allow stop or just record fixed interval?? */}
