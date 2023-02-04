@@ -36,12 +36,12 @@ const options = {
       display: false,
     },
     
-    yAxes: {
-      ticks: {
-        suggestedMin: 0,
-        suggestedMax: 1000,
-      }
-    }
+    // yAxes: {
+    //   ticks: {
+    //     suggestedMin: 0,
+    //     suggestedMax: 1000,
+    //   }
+    // }
   },
   // animation: {
   //   duration: 0

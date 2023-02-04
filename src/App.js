@@ -1,7 +1,8 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { MuseClient } from 'muse-js';
 import LineChart from "./components/LineChart";
-import Modal from "./components/Modal";
+// import Modal from "./components/Modal";
+import ModalTwoStage from "./components/ModalTwoStage";
 import logo from './static/logo.svg';
 import "./App.css";
 
@@ -38,9 +39,9 @@ var isRecordButtonHidden = true;
 var isConnectButtonHidden = true;
 var isCurrentlyRecording = false;
 var isDataSimulated = true;
-// var modality = "EEG"
+var modality = "EEG"
 // var modality = "ACC"
-var modality = "PPG"
+// var modality = "PPG"
 
 // var worker = undefined;
 var headset = undefined;
@@ -54,7 +55,9 @@ function App() {
   const [modalHidden, setModalHidden] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [recordButtonText, setRecordButtonText] = useState("Record");
-  // const [modality, setModality] = useState("EEG");
+  const [modalStage, setModalStage] = useState(false);
+  const [modalBody, setModalBody] = useState("To begin, select either the accelerometer, the photoplethysmography, or the electroencephalography modality.");
+  // const [modality, setModality] = useState("ACC");
 
   useEffect(() => {
 
@@ -345,6 +348,17 @@ function App() {
     return Math.random() * (max - min + 1) + min
   }
 
+  function testFunc() {
+    console.log("modality", modality);
+  }
+
+  function updateModalStage(event) {
+    // setModality(event);
+    modality = event;
+    setModalStage(true);
+    setModalBody("If you do not have a device to connect, you can simulate the data.");
+  }
+
 
 
   return (
@@ -357,7 +371,7 @@ function App() {
 
       <div className="App-body">
 
-        <Modal
+        {/* <Modal
           title={"Connect Hardware"}
           body={"To begin the demo, either connect hardware or use simulated data."}
           primaryButtonText={"Connect"}
@@ -366,11 +380,24 @@ function App() {
           secondaryButtonOnClick={dismissModalSimulate}
           isConnecting={isConnecting}
           hidden={modalHidden}
+        /> */}
+
+        <ModalTwoStage
+          title={"Connect Hardware"}
+          body={modalBody}
+          primaryButtonText={"Connect"}
+          primaryButtonOnClick={connect}
+          secondaryButtonText={"Simulate"}
+          secondaryButtonOnClick={dismissModalSimulate}
+          isConnecting={isConnecting}
+          hidden={modalHidden}
+          stage={modalStage}
+          updateStage={updateModalStage}
         />
 
 
         <div className="App-position-top-right">
-          <div className="App-data-type-text">{isDataSimulated ? 'Simulated Data' : 'Live Data'}</div>
+          <div className="App-data-type-text" onClick={testFunc}>{modality} | {isDataSimulated ? 'Simulated Data' : 'Live Data'}</div>
         </div>
 
 
@@ -384,10 +411,10 @@ function App() {
         <div className="App-chart-container">
           <LineChart chartData={museData[2]} chartColor={chartColors[2]} />
         </div>
-        <div className="App-chart-container">
+        <div className={`App-chart-container ${modality == "ACC" || modality == "PPG" ? "App-hidden" : ""}`}>
           <LineChart chartData={museData[3]} chartColor={chartColors[3]} />
         </div>
-        <div className="App-chart-container">
+        <div className={`App-chart-container ${modality == "ACC" || modality == "PPG" ? "App-hidden" : ""}`}>
           <LineChart chartData={museData[4]} chartColor={chartColors[4]} />
         </div>
 
