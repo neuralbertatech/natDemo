@@ -317,7 +317,6 @@ function App() {
       // });
       // -- IF WE WANT OTHER MUSE DATA -- //
 
-
       // -- DOES NOT WORK -- //
       // Create worker, wait for message back saying it is connected...
       // worker = new Worker(new URL("../src/museWorker.js", import.meta.url), { type: "module" });
@@ -332,7 +331,6 @@ function App() {
       //   worker.postMessage({messageType: "connectHeadset", contents: "hello"});
       // }, 1000);
       // -- DOES NOT WORK -- //
-
 
       // Connected successfully
       dismissModalConnect();
