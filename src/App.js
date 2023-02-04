@@ -13,15 +13,14 @@ const numACCChannels = 3;
 const numPPGChannels = 3;
 
 var refreshRate = null;
-var recordingTime = null;
+var recordingTime = 5000; // in ms
 
 const plotSize = 100; // Number of points to show at once
 if(modality == "EEG"){
   // refreshRate = (1000/256); // 256Hz in ms
-  refreshRate = (1000/85.3333); // 256Hz in ms // museJS sends every 3 samples, so refresh every 3 steps
-  recordingTime = 5000; // in ms
+  refreshRate = 1000/85.3333; // 256Hz in ms // museJS sends every 3 samples, so refresh every 3 steps
 } else {
-  refreshRate = (1000/64); // 256Hz in ms
+  refreshRate = 1000/85.3333; // 256Hz in ms
   recordingTime = 5000; // in ms
 }
 const verbose = true;
@@ -61,7 +60,7 @@ function App() {
   const [isConnecting, setIsConnecting] = useState(false);
   const [recordButtonText, setRecordButtonText] = useState("Record");
   const [modalStage, setModalStage] = useState(false);
-  const [modalBody, setModalBody] = useState("To begin, select either the accelerometer, the photoplethysmography, or the electroencephalography modality.");
+  const [modalBody, setModalBody] = useState("To begin, select either the electroencephalography, the accelerometer, the gyroscope, or the photoplethysmography, modality.");
   // const [modality, setModality] = useState("ACC");
 
   useEffect(() => {
@@ -420,12 +419,12 @@ function App() {
         <div className="App-chart-container">
           <LineChart chartData={museData[2]} chartColor={chartColors[2]} />
         </div>
-        <div className={`App-chart-container ${modality == "ACC" || modality == "PPG" ? "App-hidden" : ""}`}>
+        <div className={`App-chart-container ${modality == "ACC" || modality == "PPG" || modality == "GYR" ? "App-hidden" : ""}`}>
           <LineChart chartData={museData[3]} chartColor={chartColors[3]} />
         </div>
-        <div className={`App-chart-container ${modality == "ACC" || modality == "PPG" ? "App-hidden" : ""}`}>
+        {/* <div className={`App-chart-container ${modality == "ACC" || modality == "PPG" ? "App-hidden" : ""}`}>
           <LineChart chartData={museData[4]} chartColor={chartColors[4]} />
-        </div>
+        </div> */}
 
         {/* For Generating Static Sample Waves */}
         {/* <div className="App-chart-container">
