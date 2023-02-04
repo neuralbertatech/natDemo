@@ -11,17 +11,27 @@ const numEEGChannels = 5;
 const numACCChannels = 3;
 const numPPGChannels = 3;
 
-const numChannels = 5;
+// var modality = "EEG"
+// var modality = "ACC"
+var modality = "PPG"
+
+var refreshRate = null;
+var recordingTime = null;
+
 const plotSize = 100; // Number of points to show at once
-const refreshRate = ((1000/256)); // 256Hz in ms
-const recordingTime = 5000; // in ms
-const verbose = false;
+if(modality == "EEG"){
+  refreshRate = (1000/256); // 256Hz in ms
+  recordingTime = 5000; // in ms
+} else {
+  refreshRate = (1000/64); // 256Hz in ms
+  recordingTime = 5000; // in ms
+}
+const verbose = true;
 
 // var museDataGlobal = Array(numChannels).fill([]); // makes the waves square somehow???
 var museDataGlobal = [[],[],[],[],[]];
 var dataPointID = 0;
 var recordedCSV = [];
-var currentDataPoint = null;
 var currentEEGDataPoint = null;
 var currentACCDataPoint = null;
 var currentPPGDataPoint = null;
@@ -38,9 +48,6 @@ var isRecordButtonHidden = true;
 var isConnectButtonHidden = true;
 var isCurrentlyRecording = false;
 var isDataSimulated = true;
-// var modality = "EEG"
-// var modality = "ACC"
-var modality = "PPG"
 
 // var worker = undefined;
 var headset = undefined;
@@ -108,6 +115,7 @@ function App() {
 
       if(verbose) {
         console.log(`${(window.performance.now()-lastTime).toFixed(5)}ms`.padEnd(15) + "| " +  `${lastNAvg.toFixed(5)}`.padEnd(10) + "| " + `${plotResolution}`);
+        console.log(refreshRate);
       }
 
       lastTime = window.performance.now();
@@ -241,6 +249,9 @@ function App() {
       // Connect
       headset = new MuseClient();
 
+      headset.enableAux = true
+
+
       if(modality == "PPG"){
         headset.enablePpg = true
       }  
@@ -258,10 +269,11 @@ function App() {
         });
       } else if (modality == "ACC") {
         // Setup the subscription to ACC data
-        headset.gyroscopeData.subscribe(reading => {
+        // headset.gyroscopeData.subscribe(reading => {
+        headset.accelerometerData.subscribe(reading => {
           var sa = reading.samples;
           // currentACCDataPoint = [sa[0] / 16384,sa[1] / 16384,sa[2] / 16384];
-          currentACCDataPoint = [sa[0].x, sa[0].y, sa[0].z];
+          currentACCDataPoint = [sa[2].x, sa[2].y, sa[2].z];
           console.log(sa);
         });
       } else if (modality == "PPG") {
