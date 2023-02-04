@@ -10,6 +10,7 @@ import "./App.css";
 
 const numEEGChannels = 5;
 const numACCChannels = 3;
+const numGYRChannels = 3;
 const numPPGChannels = 3;
 
 var refreshRate = null;
@@ -32,6 +33,7 @@ var dataPointID = 0;
 var recordedCSV = [];
 var currentEEGDataPoint = null;
 var currentACCDataPoint = null;
+var currentGYRDataPoint = null;
 var currentPPGDataPoint = null;
 
 var plotResolution = 3; // Number of points to skip, lower is higher res
@@ -83,6 +85,8 @@ function App() {
           currentEEGDataPoint = [Math.random(), Math.random(), Math.random(), Math.random(), Math.random()];
         } else if (modality == "ACC") {
           currentACCDataPoint = [Math.random(), Math.random(), Math.random()];
+        } else if (modality == "GYR") {
+          currentACCDataPoint = [Math.random(), Math.random(), Math.random()];
         } else if (modality == "PPG") {
           currentPPGDataPoint = [Math.random(), Math.random(), Math.random()];
         }
@@ -98,6 +102,8 @@ function App() {
           recordedCSV.push(currentEEGDataPoint);
         } else if (modality == "ACC") {
           recordedCSV.push(currentACCDataPoint);
+        } else if (modality == "GYR") {
+          recordedCSV.push(currentGYRDataPoint);
         } else if (modality == "PPG") {
           recordedCSV.push(currentPPGDataPoint);
         }
@@ -154,6 +160,18 @@ function App() {
           museDataGlobal[i].push({
             id: dataPointID,
             e1: currentACCDataPoint[i],
+          });
+          // Shift the chart
+          if(museDataGlobal[i].length >= plotSize) {
+            museDataGlobal[i].shift();
+          }
+        }
+      } else if (modality == "GYR") {
+        for(var i = 0; i < numGYRChannels; i++) {
+          // Add the data to the array
+          museDataGlobal[i].push({
+            id: dataPointID,
+            e1: currentGYRDataPoint[i],
           });
           // Shift the chart
           if(museDataGlobal[i].length >= plotSize) {
@@ -269,12 +287,18 @@ function App() {
         });
       } else if (modality == "ACC") {
         // Setup the subscription to ACC data
-        // headset.gyroscopeData.subscribe(reading => {
         headset.accelerometerData.subscribe(reading => {
           var sa = reading.samples;
           // currentACCDataPoint = [sa[0] / 16384,sa[1] / 16384,sa[2] / 16384];
           currentACCDataPoint = [sa[2].x, sa[2].y, sa[2].z];
           console.log(sa);
+        });
+      } else if (modality == "GYR") {
+        // Setup the subscription to ACC data
+        headset.gyroscopeData.subscribe(reading => {
+          var sg = reading.samples;
+          currentGYRDataPoint = [sg[2].x, sg[2].y, sg[2].z];
+          console.log(sg);
         });
       } else if (modality == "PPG") {
         // Setup the subscription to PPG data
