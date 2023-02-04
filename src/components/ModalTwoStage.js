@@ -23,6 +23,7 @@ class ModalTwoStage extends React.Component {
   
         <div className={`Modal-button-container ${this.props.stage ? "App-hidden" : ""}`}>
           <div className="Modal-button Modal-button-generic" onClick={() => {this.updateStage("PPG")}}                             >PPG</div>
+          <div className="Modal-button Modal-button-generic" onClick={() => {this.updateStage("GYR")}} style={{marginRight: "0px"}}>GYR</div>
           <div className="Modal-button Modal-button-generic" onClick={() => {this.updateStage("ACC")}} style={{marginRight: "0px"}}>ACC</div>
           <div className="Modal-button Modal-button-generic" onClick={() => {this.updateStage("EEG")}} style={{marginRight: "0px"}}>EEG</div>
         </div>

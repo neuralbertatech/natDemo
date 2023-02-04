@@ -12,16 +12,13 @@ const numEEGChannels = 5;
 const numACCChannels = 3;
 const numPPGChannels = 3;
 
-// var modality = "EEG"
-// var modality = "ACC"
-var modality = "PPG"
-
 var refreshRate = null;
 var recordingTime = null;
 
 const plotSize = 100; // Number of points to show at once
 if(modality == "EEG"){
-  refreshRate = (1000/256); // 256Hz in ms
+  // refreshRate = (1000/256); // 256Hz in ms
+  refreshRate = (1000/85.3333); // 256Hz in ms // museJS sends every 3 samples, so refresh every 3 steps
   recordingTime = 5000; // in ms
 } else {
   refreshRate = (1000/64); // 256Hz in ms
@@ -119,7 +116,6 @@ function App() {
 
       if(verbose) {
         console.log(`${(window.performance.now()-lastTime).toFixed(5)}ms`.padEnd(15) + "| " +  `${lastNAvg.toFixed(5)}`.padEnd(10) + "| " + `${plotResolution}`);
-        console.log(refreshRate);
       }
 
       lastTime = window.performance.now();
