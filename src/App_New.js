@@ -11,17 +11,17 @@ const numEEGChannels = 5;
 const numACCChannels = 3;
 const numPPGChannels = 3;
 
-const numChannels = 5;
 const plotSize = 100; // Number of points to show at once
 const refreshRate = ((1000/256)); // 256Hz in ms
+// const refreshRate = ((64)); // 256Hz in ms
 const recordingTime = 5000; // in ms
 const verbose = false;
 
-// var museDataGlobal = Array(numChannels).fill([]); // makes the waves square somehow???
+// var museDataGlobal = Array(numEEGChannels).fill([]); // makes the waves square somehow???
 var museDataGlobal = [[],[],[],[],[]];
+var museDataGlobal = [[],[],[]];
 var dataPointID = 0;
 var recordedCSV = [];
-var currentDataPoint = null;
 var currentEEGDataPoint = null;
 var currentACCDataPoint = null;
 var currentPPGDataPoint = null;
@@ -38,14 +38,13 @@ var isRecordButtonHidden = true;
 var isConnectButtonHidden = true;
 var isCurrentlyRecording = false;
 var isDataSimulated = true;
-// var modality = "EEG"
-// var modality = "ACC"
-var modality = "PPG"
+var modality = "EEG"
 
 // var worker = undefined;
 var headset = undefined;
 
 var lastTime = window.performance.now();
+
 
 function App() {
   const [generatedWaves, setGeneratedWaves] = useState([[],[],[],[],[]]); // For Generating Static Sample Waves
@@ -127,6 +126,13 @@ function App() {
       if(dataPointID % plotResolution != 0) {
         return; // skip every n = plotResolution points for performance reasons
       }
+  
+      // for(var i = 0; i < numEEGChannels; i++) {
+      //   // Add the data to the array
+      //   museDataGlobal[i].push({
+      //     id: dataPointID,
+      //     e1: currentEEGDataPoint[i],
+      //   });
 
       if(modality == "EEG"){
         for(var i = 0; i < numEEGChannels; i++) {
@@ -165,6 +171,12 @@ function App() {
           }
         }
       }
+  
+      // Shift the chart
+      if(museDataGlobal[i].length >= plotSize) {
+        museDataGlobal[i].shift();
+      }
+      
       // Set the data
       setMuseData([...museDataGlobal]); // need to do so the ... so React thinks its new
     }, refreshRate);
@@ -229,9 +241,6 @@ function App() {
     link.click(); 
   }
 
-  
-
-
   // TODO import this
   async function connect() {
     try {
@@ -243,7 +252,7 @@ function App() {
 
       if(modality == "PPG"){
         headset.enablePpg = true
-      }  
+      }   
 
       await headset.connect();
       await headset.start();
@@ -258,10 +267,11 @@ function App() {
         });
       } else if (modality == "ACC") {
         // Setup the subscription to ACC data
-        headset.gyroscopeData.subscribe(reading => {
+        headset.accelerometerData.subscribe(reading => {
+          console.log(reading);
           var sa = reading.samples;
           // currentACCDataPoint = [sa[0] / 16384,sa[1] / 16384,sa[2] / 16384];
-          currentACCDataPoint = [sa[0].x, sa[0].y, sa[0].z];
+          currentACCDataPoint = [sa[0], sa[1], sa[2]];
           console.log(sa);
         });
       } else if (modality == "PPG") {
@@ -364,6 +374,7 @@ function App() {
           primaryButtonOnClick={connect}
           secondaryButtonText={"Simulate"}
           secondaryButtonOnClick={dismissModalSimulate}
+          // setModality={modality} // checkbox array
           isConnecting={isConnecting}
           hidden={modalHidden}
         />

@@ -7,10 +7,6 @@ import "./App.css";
 
 // import museWorker from "./workerFile.js";
 
-const numEEGChannels = 5;
-const numACCChannels = 3;
-const numPPGChannels = 3;
-
 const numChannels = 5;
 const plotSize = 100; // Number of points to show at once
 const refreshRate = ((1000/256)); // 256Hz in ms
@@ -22,9 +18,6 @@ var museDataGlobal = [[],[],[],[],[]];
 var dataPointID = 0;
 var recordedCSV = [];
 var currentDataPoint = null;
-var currentEEGDataPoint = null;
-var currentACCDataPoint = null;
-var currentPPGDataPoint = null;
 
 var plotResolution = 3; // Number of points to skip, lower is higher res
 var lastNPlotTimes = [];
@@ -38,14 +31,12 @@ var isRecordButtonHidden = true;
 var isConnectButtonHidden = true;
 var isCurrentlyRecording = false;
 var isDataSimulated = true;
-// var modality = "EEG"
-// var modality = "ACC"
-var modality = "PPG"
 
 // var worker = undefined;
 var headset = undefined;
 
 var lastTime = window.performance.now();
+
 
 function App() {
   const [generatedWaves, setGeneratedWaves] = useState([[],[],[],[],[]]); // For Generating Static Sample Waves
@@ -54,7 +45,7 @@ function App() {
   const [modalHidden, setModalHidden] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [recordButtonText, setRecordButtonText] = useState("Record");
-  // const [modality, setModality] = useState("EEG");
+
 
   useEffect(() => {
 
@@ -71,13 +62,7 @@ function App() {
     // Random Data Generation
     setInterval(() => {
       if(isDataSimulated) {
-        if(modality == "EEG"){
-          currentEEGDataPoint = [Math.random(), Math.random(), Math.random(), Math.random(), Math.random()];
-        } else if (modality == "ACC") {
-          currentACCDataPoint = [Math.random(), Math.random(), Math.random()];
-        } else if (modality == "PPG") {
-          currentPPGDataPoint = [Math.random(), Math.random(), Math.random()];
-        }
+        currentDataPoint = [Math.random(), Math.random(), Math.random(), Math.random(), Math.random()];
       }
     }, refreshRate);
 
@@ -86,13 +71,7 @@ function App() {
     // Recording
     setInterval(() => {
       if(isCurrentlyRecording) {
-        if(modality == "EEG"){
-          recordedCSV.push(currentEEGDataPoint);
-        } else if (modality == "ACC") {
-          recordedCSV.push(currentACCDataPoint);
-        } else if (modality == "PPG") {
-          recordedCSV.push(currentPPGDataPoint);
-        }
+        recordedCSV.push(currentDataPoint);
         if(recordedCSV.length >= (recordingTime/refreshRate)) { // recordingTime/refreshRate = number of samples to be recorded.
           stopRecording();
         }
@@ -128,43 +107,19 @@ function App() {
         return; // skip every n = plotResolution points for performance reasons
       }
 
-      if(modality == "EEG"){
-        for(var i = 0; i < numEEGChannels; i++) {
-          // Add the data to the array
-          museDataGlobal[i].push({
-            id: dataPointID,
-            e1: currentEEGDataPoint[i],
-          });
-          // Shift the chart
-          if(museDataGlobal[i].length >= plotSize) {
-            museDataGlobal[i].shift();
-          }
-        }
-      } else if (modality == "ACC") {
-        for(var i = 0; i < numACCChannels; i++) {
-          // Add the data to the array
-          museDataGlobal[i].push({
-            id: dataPointID,
-            e1: currentACCDataPoint[i],
-          });
-          // Shift the chart
-          if(museDataGlobal[i].length >= plotSize) {
-            museDataGlobal[i].shift();
-          }
-        }
-      } else if (modality == "PPG") {
-        for(var i = 0; i < numPPGChannels; i++) {
-          // Add the data to the array
-          museDataGlobal[i].push({
-            id: dataPointID,
-            e1: currentPPGDataPoint[i],
-          });
-          // Shift the chart
-          if(museDataGlobal[i].length >= plotSize) {
-            museDataGlobal[i].shift();
-          }
+      for(var i = 0; i < numChannels; i++) {
+        // Add the data to the array
+        museDataGlobal[i].push({
+          id: dataPointID,
+          e1: currentDataPoint[i],
+        });
+  
+        // Shift the chart
+        if(museDataGlobal[i].length >= plotSize) {
+          museDataGlobal[i].shift();
         }
       }
+
       // Set the data
       setMuseData([...museDataGlobal]); // need to do so the ... so React thinks its new
     }, refreshRate);
@@ -240,38 +195,17 @@ function App() {
 
       // Connect
       headset = new MuseClient();
-
-      if(modality == "PPG"){
-        headset.enablePpg = true
-      }  
-
       await headset.connect();
       await headset.start();
       headset.eegReadings$ = headset.eegReadings;      
 
-      if(modality == "EEG"){
-        // Setup the subscription to EEG data
-        headset.eegReadings.subscribe(reading => {
-          var se = reading.samples;
-          currentEEGDataPoint = [se[0], se[1], se[2], se[3], se[4]];
-          console.log(se);
-        });
-      } else if (modality == "ACC") {
-        // Setup the subscription to ACC data
-        headset.gyroscopeData.subscribe(reading => {
-          var sa = reading.samples;
-          // currentACCDataPoint = [sa[0] / 16384,sa[1] / 16384,sa[2] / 16384];
-          currentACCDataPoint = [sa[0].x, sa[0].y, sa[0].z];
-          console.log(sa);
-        });
-      } else if (modality == "PPG") {
-        // Setup the subscription to PPG data
-        headset.ppgReadings.subscribe(reading => {
-          var sp = reading.samples;
-          currentPPGDataPoint = [sp[0], sp[1], sp[2]];
-          console.log(sp);
-        });
-      }
+      // Setup the subscription to data
+      headset.eegReadings.subscribe(reading => {
+        var s = reading.samples;
+        currentDataPoint = [s[0], s[1], s[2], s[3], s[4]];
+        // console.log(s);
+      });
+
 
       // -- IF WE WANT OTHER MUSE DATA -- //
       // window.headset.telemetryData.subscribe(telemetry => {
