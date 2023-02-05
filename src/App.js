@@ -8,25 +8,28 @@ import "./App.css";
 
 // import museWorker from "./workerFile.js";
 
-const numEEGChannels = 5;
+const numEEGChannels = 4;
 const numACCChannels = 3;
 const numGYRChannels = 3;
 const numPPGChannels = 3;
 
+const plotSizeACC = 50;
+const plotSizeOther = 100;
+
 var refreshRate = undefined;
 var recordingTime = 5000; // in ms
+var plotSize = plotSizeOther; // Number of points to show at once
 
-const plotSize = 100; // Number of points to show at once
 if(modality == "EEG"){
   // refreshRate = (1000/256); // 256Hz in ms
   refreshRate = 1000/(256/3); // 256Hz in ms // museJS sends every 3 samples, so refresh every 3 steps
 } else {
   refreshRate = 1000/64; // 256Hz in ms
 }
-const verbose = true;
+const verbose = false;
 
 // var museDataGlobal = Array(numChannels).fill([]); // makes the waves square somehow???
-var museDataGlobal = [[],[],[],[],[]];
+var museDataGlobal = [[],[],[],[],[],[]];
 var dataPointID = 0;
 var recordedCSV = [];
 var currentEEGDataPoint = null;
@@ -56,7 +59,7 @@ var lastTime = window.performance.now();
 function App() {
   const [generatedWaves, setGeneratedWaves] = useState([[],[],[],[],[]]); // For Generating Static Sample Waves
   const [museData, setMuseData] = useState(museDataGlobal);
-  const [chartColors, setChartColors] = useState(['#7967e1', '#527ae8', '#2689e7', '#0095e0', '#1b9fd6']);
+  const [chartColors, setChartColors] = useState(['#7967e1', '#527ae8', '#2689e7', '#0095e0', '#1b9fd6', '#14bae3']);
   const [modalHidden, setModalHidden] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [recordButtonText, setRecordButtonText] = useState("Record");
@@ -79,15 +82,10 @@ function App() {
     // Random Data Generation
     setInterval(() => {
       if(isDataSimulated) {
-        if(modality == "EEG"){
-          currentEEGDataPoint = [Math.random(), Math.random(), Math.random(), Math.random(), Math.random()];
-        } else if (modality == "ACC") {
-          currentACCDataPoint = [Math.random(), Math.random(), Math.random()];
-        } else if (modality == "GYR") {
-          currentACCDataPoint = [Math.random(), Math.random(), Math.random()];
-        } else if (modality == "PPG") {
-          currentPPGDataPoint = [Math.random(), Math.random(), Math.random()];
-        }
+        currentEEGDataPoint = [Math.random(), Math.random(), Math.random(), Math.random()];
+        currentACCDataPoint = [Math.random(), Math.random(), Math.random()];
+        currentGYRDataPoint = [Math.random(), Math.random(), Math.random()];
+        currentPPGDataPoint = [Math.random(), Math.random(), Math.random()];
       }
     }, refreshRate);
 
@@ -164,16 +162,15 @@ function App() {
             museDataGlobal[i].shift();
           }
         }
-      } else if (modality == "GYR") {
         for(var i = 0; i < numGYRChannels; i++) {
           // Add the data to the array
-          museDataGlobal[i].push({
+          museDataGlobal[i + numACCChannels].push({
             id: dataPointID,
             e1: currentGYRDataPoint[i],
           });
           // Shift the chart
-          if(museDataGlobal[i].length >= plotSize) {
-            museDataGlobal[i].shift();
+          if(museDataGlobal[i + numACCChannels].length >= plotSize) {
+            museDataGlobal[i + numACCChannels].shift();
           }
         }
       } else if (modality == "PPG") {
@@ -265,78 +262,40 @@ function App() {
       // Connect
       headset = new MuseClient();
 
-      headset.enableAux = true
-
-
-      if(modality == "PPG"){
-        headset.enablePpg = true
-      }  
+      headset.enablePpg = true;
 
       await headset.connect();
       await headset.start();
       headset.eegReadings$ = headset.eegReadings;      
+      // headset.enableAux = true
 
-      if(modality == "EEG"){
-        // Setup the subscription to EEG data
-        headset.eegReadings.subscribe(reading => {
-          var se = reading.samples;
-          currentEEGDataPoint = [se[0], se[1], se[2], se[3], se[4]];
-          console.log(se);
-        });
-      } else if (modality == "ACC") {
-        // Setup the subscription to ACC data
-        headset.accelerometerData.subscribe(reading => {
-          var sa = reading.samples;
-          currentACCDataPoint = [sa[2].x, sa[2].y, sa[2].z];
-          console.log(sa);
-        });
-      } else if (modality == "GYR") {
-        // Setup the subscription to GYR data
-        headset.gyroscopeData.subscribe(reading => {
-          var sg = reading.samples;
-          currentGYRDataPoint = [sg[2].x, sg[2].y, sg[2].z];
-          console.log("GYR");
-          console.log(sg);
 
-        });
-        headset.accelerometerData.subscribe(reading => {
-          var sa = reading.samples;
-          currentACCDataPoint = [sa[2].x, sa[2].y, sa[2].z];
-          console.log("ACC");
-          console.log(sa);
-        });
-      } else if (modality == "PPG") {
-        // Setup the subscription to PPG data
-        headset.ppgReadings.subscribe(reading => {
-          var sp = reading.samples;
-          currentPPGDataPoint = [sp[0], sp[1], sp[2]];
-          console.log(sp);
-        });
-      }
+      // Setup the subscription to EEG data
+      headset.eegReadings.subscribe(reading => {
+        var se = reading.samples;
+        currentEEGDataPoint = [se[0], se[1], se[2], se[3]];
+        // console.log(se);
+      });
 
-      // -- IF WE WANT OTHER MUSE DATA -- //
-      // window.headset.telemetryData.subscribe(telemetry => {
-      //   console.log(telemetry);
-      // });
-      // window.headset.accelerometerData.subscribe(acceleration => {
-      //   console.log(acceleration);
-      // });
-      // -- IF WE WANT OTHER MUSE DATA -- //
+      // Setup the subscription to GYR/ACC data
+      headset.gyroscopeData.subscribe(reading => {
+        var sg = reading.samples;
+        currentGYRDataPoint = [sg[2].x, sg[2].y, sg[2].z];
+        // console.log("GYR", sg);
+      });
+      headset.accelerometerData.subscribe(reading => {
+        var sa = reading.samples;
+        currentACCDataPoint = [sa[2].x, sa[2].y, sa[2].z];
+        // console.log("ACC", sa);
+      });
 
-      // -- DOES NOT WORK -- //
-      // Create worker, wait for message back saying it is connected...
-      // worker = new Worker(new URL("../src/museWorker.js", import.meta.url), { type: "module" });
+      // Setup the subscription to PPG data
+      headset.ppgReadings.subscribe(reading => {
+        var sp = reading.samples;
+        currentPPGDataPoint = [sp[0], sp[1], sp[2]];
+        // console.log(sp);
+      });
 
-      // console.log("worker", worker);
-      
-      // worker.onmessage = function(e) {
-      //   console.log("got data back from worker", e);
-      // };
-      
-      // setTimeout(() => {        
-      //   worker.postMessage({messageType: "connectHeadset", contents: "hello"});
-      // }, 1000);
-      // -- DOES NOT WORK -- //
 
       // Connected successfully
       dismissModalConnect();
@@ -389,10 +348,20 @@ function App() {
   }
 
   function updateModalStage(event) {
-    // setModality(event);
     modality = event;
     setModalStage(true);
     setModalBody("If you do not have a device to connect, you can simulate the data.");
+  }
+
+  function switchModality(mode) {
+    modality = mode; // Switch
+    museDataGlobal = [[],[],[],[],[],[]]; // Empty all arrays
+
+    if(mode == "ACC") { // ACC plots a lot.. Cut down the max plot size so performance is constant
+      plotSize = plotSizeACC;
+    } else {
+      plotSize = plotSizeOther;
+    }
   }
 
 
@@ -437,7 +406,7 @@ function App() {
         </div>
 
 
-        {/* TODO make this a for loop??? */}
+        {/* For Plotting */}
         <div className="App-chart-container">
           <LineChart chartData={museData[0]} chartColor={chartColors[0]} />
         </div>
@@ -447,12 +416,16 @@ function App() {
         <div className="App-chart-container">
           <LineChart chartData={museData[2]} chartColor={chartColors[2]} />
         </div>
-        <div className={`App-chart-container ${modality == "ACC" || modality == "PPG" || modality == "GYR" ? "App-hidden" : ""}`}>
+        <div className={`App-chart-container ${modality == "PPG" ? "App-hidden" : ""}`}>
           <LineChart chartData={museData[3]} chartColor={chartColors[3]} />
         </div>
-        {/* <div className={`App-chart-container ${modality == "ACC" || modality == "PPG" ? "App-hidden" : ""}`}>
+        <div className={`App-chart-container ${modality == "EEG" || modality == "PPG" ? "App-hidden" : ""}`}>
           <LineChart chartData={museData[4]} chartColor={chartColors[4]} />
-        </div> */}
+        </div>
+        <div className={`App-chart-container ${modality == "EEG" || modality == "PPG" ? "App-hidden" : ""}`}>
+          <LineChart chartData={museData[5]} chartColor={chartColors[5]} />
+        </div>
+        {/* For Plotting */}
 
 
         {/* For Generating Static Sample Waves */}
@@ -506,19 +479,19 @@ function App() {
           <div className={'App-button-container-horizontal'}>
             <div
               className={`App-button App-button-mini App-button-default ${modality == "EEG" ? "App-button-default-active" : ""}`}
-              onClick={() => {modality = "EEG"}}
+              onClick={() => {switchModality("EEG")}}
             >
               EEG
             </div>
             <div
               className={`App-button App-button-mini App-button-default ${modality == "ACC" ? "App-button-default-active" : ""}`}
-              onClick={() => {modality = "ACC"}}
+              onClick={() => {switchModality("ACC")}}
             >
               ACC
             </div>
             <div
               className={`App-button App-button-mini App-button-default ${modality == "PPG" ? "App-button-default-active" : ""}`}
-              onClick={() => {modality = "PPG"}}
+              onClick={() => {switchModality("PPG")}}
             >
               PPG
             </div>
