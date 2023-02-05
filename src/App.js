@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { MuseClient } from 'muse-js';
 import LineChart from "./components/LineChart";
-// import Modal from "./components/Modal";
-import ModalTwoStage from "./components/ModalTwoStage";
+import Modal from "./components/Modal";
+// import ModalTwoStage from "./components/ModalTwoStage";
 import logo from './static/logo.svg';
 import "./App.css";
 
@@ -13,16 +13,15 @@ const numACCChannels = 3;
 const numGYRChannels = 3;
 const numPPGChannels = 3;
 
-var refreshRate = null;
+var refreshRate = undefined;
 var recordingTime = 5000; // in ms
 
 const plotSize = 100; // Number of points to show at once
 if(modality == "EEG"){
   // refreshRate = (1000/256); // 256Hz in ms
-  refreshRate = 1000/85.3333; // 256Hz in ms // museJS sends every 3 samples, so refresh every 3 steps
+  refreshRate = 1000/(256/3); // 256Hz in ms // museJS sends every 3 samples, so refresh every 3 steps
 } else {
-  refreshRate = 1000/85.3333; // 256Hz in ms
-  recordingTime = 5000; // in ms
+  refreshRate = 1000/64; // 256Hz in ms
 }
 const verbose = true;
 
@@ -403,7 +402,7 @@ function App() {
 
       <div className="App-body">
 
-        {/* <Modal
+        <Modal
           title={"Connect Hardware"}
           body={"To begin the demo, either connect hardware or use simulated data."}
           primaryButtonText={"Connect"}
@@ -412,9 +411,9 @@ function App() {
           secondaryButtonOnClick={dismissModalSimulate}
           isConnecting={isConnecting}
           hidden={modalHidden}
-        /> */}
+        />
 
-        <ModalTwoStage
+        {/* <ModalTwoStage
           title={"Connect Hardware"}
           body={modalBody}
           primaryButtonText={"Connect"}
@@ -425,7 +424,7 @@ function App() {
           hidden={modalHidden}
           stage={modalStage}
           updateStage={updateModalStage}
-        />
+        /> */}
 
 
         <div className="App-position-top-right">
@@ -450,6 +449,7 @@ function App() {
           <LineChart chartData={museData[4]} chartColor={chartColors[4]} />
         </div> */}
 
+
         {/* For Generating Static Sample Waves */}
         {/* <div className="App-chart-container">
           <LineChart chartData={generatedWaves[0]} chartColor={chartColors[0]} />
@@ -468,19 +468,57 @@ function App() {
         </div> */}
 
 
-        {/* should we allow stop or just record fixed interval?? */}
-        <div
-          className={`App-button App-button-record App-position-lower-right ${isRecordButtonHidden ? "App-hidden" : ""} ${isCurrentlyRecording ? "" : "App-button-record-hover-allowed"}`}
-          onClick={beginRecording}
-        >
-          <div className={`${isCurrentlyRecording ? "App-hidden" : ""}`}>{recordButtonText}</div>
-          <div className={`${isCurrentlyRecording ? "" : "App-hidden"} App-recording-circle`}></div>
-        </div>
 
-        <div
-          className={`App-button App-button-connect App-position-lower-right ${isConnectButtonHidden ? "App-hidden" : ""}`}
-          onClick={spawnModal}
-        >Connect</div>
+        <div className={'App-position-lower-right App-button-container'}>
+          <div
+            className={`App-button App-button-record App-position-lower-right ${isRecordButtonHidden ? "App-hidden" : ""} ${isCurrentlyRecording ? "" : "App-button-record-hover-allowed"}`}
+            onClick={beginRecording}
+          >
+            <div className={`${isCurrentlyRecording ? "App-hidden" : ""}`}>{recordButtonText}</div>
+            <div className={`${isCurrentlyRecording ? "" : "App-hidden"} App-recording-circle`}></div>
+          </div>
+
+          <div
+            className={`App-button App-button-connect App-position-lower-right ${isConnectButtonHidden ? "App-hidden" : ""}`}
+            onClick={spawnModal}
+          >
+            Connect
+          </div>
+        </div>
+        
+
+
+
+        <div className={'App-button-container-vertical App-position-lower-left'}>
+          <div
+            className={`App-button App-button-fill-space App-button-default`}
+            onClick={() => window.open("https://neuralberta.tech/colab", "_blank")}
+          >
+            Colab
+          </div>
+
+          <div className={'App-button-container-horizontal'}>
+            <div
+              className={`App-button App-button-mini App-button-default ${modality == "EEG" ? "App-button-default-active" : ""}`}
+              onClick={() => {modality = "EEG"}}
+            >
+              EEG
+            </div>
+            <div
+              className={`App-button App-button-mini App-button-default ${modality == "ACC" ? "App-button-default-active" : ""}`}
+              onClick={() => {modality = "ACC"}}
+            >
+              ACC
+            </div>
+            <div
+              className={`App-button App-button-mini App-button-default ${modality == "PPG" ? "App-button-default-active" : ""}`}
+              onClick={() => {modality = "PPG"}}
+            >
+              PPG
+            </div>
+          </div>
+        </div>
+      
 
 
       </div>
