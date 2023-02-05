@@ -466,6 +466,7 @@ function App() {
         <div className="App-chart-container">
           <LineChart chartData={generatedWaves[4]} chartColor={chartColors[4]} />
         </div> */}
+        {/* For Generating Static Sample Waves */}
 
 
 
@@ -490,12 +491,12 @@ function App() {
 
 
         <div className={'App-button-container-vertical App-position-lower-left'}>
-          <div
+          {/* <div
             className={`App-button App-button-fill-space App-button-default`}
             onClick={() => window.open("https://neuralberta.tech/colab", "_blank")}
           >
             Colab
-          </div>
+          </div> */}
 
           <div className={'App-button-container-horizontal'}>
             <div
@@ -517,6 +518,16 @@ function App() {
               PPG
             </div>
           </div>
+        </div>
+
+
+
+
+        <div
+          className={`App-button App-button-default App-position-lower-center`}
+          onClick={() => window.open("https://neuralberta.tech/colab", "_blank")}
+        >
+          Colab
         </div>
       
 

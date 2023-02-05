@@ -164,6 +164,14 @@ html, body {
   position: fixed;
 }
 
+.App-position-lower-center {
+  bottom: 0px;
+  position: fixed;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+}
+
 .App-position-top-right {
   right: 0px;
   top: 0px;
