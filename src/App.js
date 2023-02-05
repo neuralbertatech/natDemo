@@ -101,7 +101,7 @@ function App() {
         } else if (modality == "ACC") {
           recordedCSV.push(currentACCDataPoint);
         } else if (modality == "GYR") {
-          recordedCSV.push(currentGYRDataPoint);
+          recordedCSV.push([...currentGYRDataPoint, ...currentACCDataPoint]);
         } else if (modality == "PPG") {
           recordedCSV.push(currentPPGDataPoint);
         }
@@ -287,16 +287,23 @@ function App() {
         // Setup the subscription to ACC data
         headset.accelerometerData.subscribe(reading => {
           var sa = reading.samples;
-          // currentACCDataPoint = [sa[0] / 16384,sa[1] / 16384,sa[2] / 16384];
           currentACCDataPoint = [sa[2].x, sa[2].y, sa[2].z];
           console.log(sa);
         });
       } else if (modality == "GYR") {
-        // Setup the subscription to ACC data
+        // Setup the subscription to GYR data
         headset.gyroscopeData.subscribe(reading => {
           var sg = reading.samples;
           currentGYRDataPoint = [sg[2].x, sg[2].y, sg[2].z];
+          console.log("GYR");
           console.log(sg);
+
+        });
+        headset.accelerometerData.subscribe(reading => {
+          var sa = reading.samples;
+          currentACCDataPoint = [sa[2].x, sa[2].y, sa[2].z];
+          console.log("ACC");
+          console.log(sa);
         });
       } else if (modality == "PPG") {
         // Setup the subscription to PPG data
@@ -316,7 +323,6 @@ function App() {
       // });
       // -- IF WE WANT OTHER MUSE DATA -- //
 
-
       // -- DOES NOT WORK -- //
       // Create worker, wait for message back saying it is connected...
       // worker = new Worker(new URL("../src/museWorker.js", import.meta.url), { type: "module" });
@@ -331,7 +337,6 @@ function App() {
       //   worker.postMessage({messageType: "connectHeadset", contents: "hello"});
       // }, 1000);
       // -- DOES NOT WORK -- //
-
 
       // Connected successfully
       dismissModalConnect();
