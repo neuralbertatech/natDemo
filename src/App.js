@@ -341,6 +341,7 @@ function App() {
         <div className="App-chart-container">
           <LineChart chartData={generatedWaves[4]} chartColor={chartColors[4]} />
         </div> */}
+        
 
 
         {/* should we allow stop or just record fixed interval?? */}
