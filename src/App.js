@@ -131,15 +131,15 @@ function App() {
       var lastNAvg = lastNPlotTimes.reduce((a, b) => a + b, 0) / lastNPlotTimes.length;
 
       if(showPerformanceLogs) {
-        // console.log(`${(window.performance.now()-lastTime).toFixed(5)}ms`.padEnd(15) + "| " +  `${lastNAvg.toFixed(5)}`.padEnd(10) + "| " + `${plotResolution}`);
-        console.log(`${(window.performance.now()-lastTime).toFixed(5)}ms`.padEnd(15) + "| " +  `${lastNAvg.toFixed(5)}`.padEnd(10) + "| " + `${plotResolution}`, recordingTime, refreshRate, recordingTime/refreshRate);
+        console.log(`${(refreshRate/3).toFixed(2).padEnd(6)}` + "| " + `${(window.performance.now()-lastTime).toFixed(5)}ms`.padEnd(15) + "| " +  `${lastNAvg.toFixed(5)}`.padEnd(10) + "| " + `${plotResolution}`);
+        // console.log(`${(window.performance.now()-lastTime).toFixed(5)}ms`.padEnd(15) + "| " +  `${lastNAvg.toFixed(5)}`.padEnd(10) + "| " + `${plotResolution}`, recordingTime, refreshRate, recordingTime/refreshRate);
       }
 
       lastTime = window.performance.now();
 
       if(plotResolutionCount % plotResolutionUpdateFrequency == 0) {
-        if      ( lastNAvg > refreshRate+2 && plotResolution < maxPlotResolution ) { plotResolution += 1; }
-        else if ( lastNAvg < refreshRate+1 && plotResolution > minPlotResolution ) { plotResolution -= 1; }
+        if      ( lastNAvg > (refreshRate/3)+2 && plotResolution < maxPlotResolution ) { plotResolution += 1; }
+        else if ( lastNAvg < (refreshRate/3)+1 && plotResolution > minPlotResolution ) { plotResolution -= 1; }
         plotResolutionCount = 0;
       }
       plotResolutionCount += 1;
@@ -204,7 +204,7 @@ function App() {
       }
       // Set the data
       setMuseData([...museDataGlobal]); // need to do so the ... so React thinks its new
-    }, refreshRate/12);
+    }, refreshRate/3);
     }
 
 
