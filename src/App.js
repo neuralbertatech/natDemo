@@ -3,7 +3,7 @@ import { MuseClient } from 'muse-js';
 import LineChart from "./components/LineChart";
 import LineChartAutoScale from "./components/LineChartAutoScale";
 import Modal from "./components/Modal";
-import {Helmet} from "react-helmet";
+// import {Helmet} from "react-helmet";
 // import ModalTwoStage from "./components/ModalTwoStage";
 import logo from './static/logo.svg';
 import "./App.css";
@@ -63,11 +63,10 @@ var lastTime = window.performance.now();
 // Init the refresh rate
 if(modality == "EEG"){ // The refresh rate is different for different modalities
   refreshRate = 1000/(256/12); // 256Hz in ms
-  recordingTime = standardRecordingTime * 12; // we change this since EEG needs every 3 samples
-  // refreshRate = 1000/(256/3); // 256Hz in ms // museJS sends every 3 samples, so refresh every 3 steps
+  recordingTime = standardRecordingTime * 12;
 } else {
-  recordingTime = standardRecordingTime / 3;
   refreshRate = 1000/64; // 256Hz in ms
+  recordingTime = standardRecordingTime / 3;
 }
 
 
@@ -79,11 +78,14 @@ function App() {
   const [modalHidden, setModalHidden] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [recordButtonText, setRecordButtonText] = useState("Record");
-  const [modalStage, setModalStage] = useState(false);
-  const [modalBody, setModalBody] = useState("To begin, select either the electroencephalography, the accelerometer, the gyroscope, or the photoplethysmography, modality.");
+  // const [modalStage, setModalStage] = useState(false);
+  // const [modalBody, setModalBody] = useState("To begin, select either the electroencephalography, the accelerometer, the gyroscope, or the photoplethysmography, modality.");
   // const [modality, setModality] = useState("ACC");
 
   useEffect(() => {
+    setTimeout(() => { // So that the modal doesn't take forever to appear when you summon it.
+      document.querySelector(':root').style.setProperty('--animation-init-time', '0s');
+    }, 2000);
 
     // For Generating Static Sample Waves
     // var numSamples = 7;
@@ -103,7 +105,7 @@ function App() {
         currentGYRDataPoint = [Math.random(), Math.random(), Math.random()];
         currentPPGDataPoint = [Math.random(), Math.random(), Math.random()];
       }
-    }, refreshRate);
+    }, refreshRate/12);
 
     // Reading Data From Muse is Handled in its Own Subscription
 
@@ -144,7 +146,7 @@ function App() {
         plotResolutionCount = 0;
       }
       plotResolutionCount += 1;
-    }, refreshRate/12);
+    }, museRate);
 
 
     // Plotting
@@ -388,11 +390,11 @@ function App() {
     console.log("modality", modality);
   }
 
-  function updateModalStage(event) {
-    modality = event;
-    setModalStage(true);
-    setModalBody("If you do not have a device to connect, you can simulate the data.");
-  }
+  // function updateModalStage(event) {
+  //   modality = event;
+  //   setModalStage(true);
+  //   setModalBody("If you do not have a device to connect, you can simulate the data.");
+  // }
 
   function switchModality(mode) {
     modality = mode; // Switch
