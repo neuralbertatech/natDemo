@@ -15,15 +15,15 @@ const numACCChannels = 3;
 const numGYRChannels = 3;
 const numPPGChannels = 3;
 
-const showPerformanceLogs = false;
-const isPlottingEnabled = false;
+const showPerformanceLogs = true;
+const isPlottingEnabled = true;
 
 const plotSizeACC = 50;
 const plotSizeOther = 100;
 const standardRecordingTime = 5000;
 
 
-var refreshRate = 1; //1000/256; // trying to refresh every ms 
+var refreshRate = 1000/256;
 var recordingTime = standardRecordingTime; // in ms
 var plotSize = plotSizeOther; // Number of points to show at once
 var modality = "EEG";
@@ -32,6 +32,7 @@ var modality = "EEG";
 var museDataGlobal = [[],[],[],[],[],[]];
 var dataPointID = 0;
 var recordedCSV = [];
+var currentEEGDataPointRec = null;
 var currentEEGDataPoint = null;
 var currentACCDataPoint = null;
 var currentGYRDataPoint = null;
@@ -49,23 +50,23 @@ var isRecordButtonHidden = true;
 var isConnectButtonHidden = true;
 var isCurrentlyRecording = false;
 var isDataSimulated = true;
-var isSafeToRecordNextTick = true;
 
 var partialDP = [undefined, undefined, undefined, undefined];
+var partialDPRec = [undefined, undefined, undefined, undefined];
 
 // var worker = undefined;
 var headset = undefined;
 var lastTime = window.performance.now();
 
 // Init the refresh rate
-if(modality == "EEG"){ // The refresh rate is different for different modalities
-  refreshRate = 1000/256; // 256Hz in ms
-  // recordingTime = standardRecordingTime * 3; // we change this since EEG needs every 3 samples
-  // refreshRate = 1000/(256/3); // 256Hz in ms // museJS sends every 3 samples, so refresh every 3 steps
-} else {
-  // recordingTime = standardRecordingTime;
-  refreshRate = 1000/64; // 256Hz in ms
-}
+// if(modality == "EEG"){ // The refresh rate is different for different modalities
+//   refreshRate = 1000/256; // 256Hz in ms
+//   // recordingTime = standardRecordingTime * 3; // we change this since EEG needs every 3 samples
+//   // refreshRate = 1000/(256/3); // 256Hz in ms // museJS sends every 3 samples, so refresh every 3 steps
+// } else {
+//   // recordingTime = standardRecordingTime;
+//   refreshRate = 1000/64; // 256Hz in ms
+// }
 
 
 
@@ -106,10 +107,9 @@ function App() {
 
     // Recording
     setInterval(() => {
-      if(isCurrentlyRecording && isSafeToRecordNextTick) {
+      if(isCurrentlyRecording) {
         if(modality == "EEG"){
-          // recordedCSV.push(currentEEGDataPoint);
-          recordedCSV.push(...currentEEGDataPoint);
+          recordedCSV.push(currentEEGDataPointRec);
         } else if (modality == "ACC") {
           recordedCSV.push(currentACCDataPoint);
         } else if (modality == "GYR") {
@@ -120,7 +120,6 @@ function App() {
         if(recordedCSV.length >= (recordingTime/refreshRate)) { // recordingTime/refreshRate = number of samples to be recorded.
           stopRecording();
         }
-        isSafeToRecordNextTick = false; // Needs to be ready to record tick if updated by the muse subscriber
       }
     }, refreshRate);
 
@@ -292,34 +291,26 @@ function App() {
       // Setup the subscription to EEG data
       headset.eegReadings.subscribe(reading => {
         var se = reading.samples;
-
-        // console.log(isSafeToRecordNextTick, recordedCSV.length, (window.performance.now()-lastTime).toFixed(2));
         
         // console.log(reading.electrode, window.performance.now()-lastTime, reading.samples);
 
-        partialDP[reading.electrode] = [se[0]];
-        // partialDP[reading.electrode] = [se[0], se[1], se[2], se[3], se[4], se[5], se[6], se[7], se[8], se[9], se[10], se[11]];
-        // partialDP[reading.electrode] = [(se[0]/2000)+0.5, (se[1]/2000)+0.5, (se[2]/2000)+0.5, (se[3]/2000)+0.5, (se[4]/2000)+0.5, (se[5]/2000)+0.5, (se[6]/2000)+0.5, (se[7]/2000)+0.5, (se[8]/2000)+0.5, (se[9]/2000)+0.5, (se[10]/2000)+0.5, (se[11]/2000)+0.5];
+        partialDP[reading.electrode]   = (se[0]/2000)+0.5;
+        partialDPRec[reading.electrode] = se[0];
 
         // currentEEGDataPoint = [se[0], se[1], se[2], se[3]]; //-1000 to 1000
         // currentEEGDataPoint    = [(se[0]/2000)+0.5, (se[1]/2000)+0.5, (se[2]/2000)+0.5, (se[3]/2000)+0.5]; //0 to 1
         // currentEEGDataPointRec = [[se[0], se[1], se[2], se[3]], [se[4], se[5], se[6], se[7]], [se[8], se[9], se[10], se[11]]]
 
+        // sends e0, e1, e2, e3
+
         // console.log(se);
 
         if(partialDP[0] !== undefined && partialDP[1] !== undefined && partialDP[2] !== undefined && partialDP[3] !== undefined) {
-          var out = [];
-          for(var i = 0; i < partialDP[0].length; i++) {
-            out.push([partialDP[0][i], partialDP[1][i], partialDP[2][i], partialDP[3][i]]);
-          }
-
-          
-
-          // currentEEGDataPoint = partialDP;
-          currentEEGDataPoint = out;
-          isSafeToRecordNextTick = true;
+          currentEEGDataPoint = partialDP;
+          currentEEGDataPointRec = partialDPRec;
           // console.log((window.performance.now()-lastTime).toFixed(2), currentEEGDataPoint);
           partialDP = [undefined, undefined, undefined, undefined];
+          partialDPRec = [undefined, undefined, undefined, undefined];
         }
       });
 
