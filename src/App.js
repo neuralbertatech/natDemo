@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
 import { MuseClient } from 'muse-js';
 import LineChart from "./components/LineChart";
+import LineChartAutoScale from "./components/LineChartAutoScale";
 import Modal from "./components/Modal";
+import {Helmet} from "react-helmet";
 // import ModalTwoStage from "./components/ModalTwoStage";
 import logo from './static/logo.svg';
 import "./App.css";
@@ -13,22 +15,20 @@ const numACCChannels = 3;
 const numGYRChannels = 3;
 const numPPGChannels = 3;
 
+const showPerformanceLogs = false;
+const isPlottingEnabled = false;
+
 const plotSizeACC = 50;
 const plotSizeOther = 100;
+const standardRecordingTime = 5000;
 
-var refreshRate = undefined;
-var recordingTime = 5000; // in ms
+
+var refreshRate = 1; //1000/256; // trying to refresh every ms 
+var recordingTime = standardRecordingTime; // in ms
 var plotSize = plotSizeOther; // Number of points to show at once
+var modality = "EEG";
 
-if(modality == "EEG"){
-  // refreshRate = (1000/256); // 256Hz in ms
-  refreshRate = 1000/(256/3); // 256Hz in ms // museJS sends every 3 samples, so refresh every 3 steps
-} else {
-  refreshRate = 1000/64; // 256Hz in ms
-}
-const verbose = false;
-
-// var museDataGlobal = Array(numChannels).fill([]); // makes the waves square somehow???
+// var museDataGlobal = Array(numChannels).fill([]); // makes the waves square for some reason???
 var museDataGlobal = [[],[],[],[],[],[]];
 var dataPointID = 0;
 var recordedCSV = [];
@@ -49,12 +49,25 @@ var isRecordButtonHidden = true;
 var isConnectButtonHidden = true;
 var isCurrentlyRecording = false;
 var isDataSimulated = true;
-var modality = "EEG";
+var isSafeToRecordNextTick = true;
+
+var partialDP = [undefined, undefined, undefined, undefined];
 
 // var worker = undefined;
 var headset = undefined;
-
 var lastTime = window.performance.now();
+
+// Init the refresh rate
+if(modality == "EEG"){ // The refresh rate is different for different modalities
+  refreshRate = 1000/256; // 256Hz in ms
+  // recordingTime = standardRecordingTime * 3; // we change this since EEG needs every 3 samples
+  // refreshRate = 1000/(256/3); // 256Hz in ms // museJS sends every 3 samples, so refresh every 3 steps
+} else {
+  // recordingTime = standardRecordingTime;
+  refreshRate = 1000/64; // 256Hz in ms
+}
+
+
 
 function App() {
   const [generatedWaves, setGeneratedWaves] = useState([[],[],[],[],[]]); // For Generating Static Sample Waves
@@ -93,9 +106,10 @@ function App() {
 
     // Recording
     setInterval(() => {
-      if(isCurrentlyRecording) {
+      if(isCurrentlyRecording && isSafeToRecordNextTick) {
         if(modality == "EEG"){
-          recordedCSV.push(currentEEGDataPoint);
+          // recordedCSV.push(currentEEGDataPoint);
+          recordedCSV.push(...currentEEGDataPoint);
         } else if (modality == "ACC") {
           recordedCSV.push(currentACCDataPoint);
         } else if (modality == "GYR") {
@@ -106,6 +120,7 @@ function App() {
         if(recordedCSV.length >= (recordingTime/refreshRate)) { // recordingTime/refreshRate = number of samples to be recorded.
           stopRecording();
         }
+        isSafeToRecordNextTick = false; // Needs to be ready to record tick if updated by the muse subscriber
       }
     }, refreshRate);
 
@@ -116,7 +131,7 @@ function App() {
       if(lastNPlotTimes.length >= plotResolutionWindow) {lastNPlotTimes.shift();}
       var lastNAvg = lastNPlotTimes.reduce((a, b) => a + b, 0) / lastNPlotTimes.length;
 
-      if(verbose) {
+      if(showPerformanceLogs) {
         console.log(`${(window.performance.now()-lastTime).toFixed(5)}ms`.padEnd(15) + "| " +  `${lastNAvg.toFixed(5)}`.padEnd(10) + "| " + `${plotResolution}`);
       }
 
@@ -132,6 +147,7 @@ function App() {
 
 
     // Plotting
+    if(isPlottingEnabled) {
     setInterval(() => {
       dataPointID += 1;
       if(dataPointID % plotResolution != 0) {
@@ -189,6 +205,9 @@ function App() {
       // Set the data
       setMuseData([...museDataGlobal]); // need to do so the ... so React thinks its new
     }, refreshRate);
+    }
+
+
   }, []);
 
 
@@ -273,26 +292,56 @@ function App() {
       // Setup the subscription to EEG data
       headset.eegReadings.subscribe(reading => {
         var se = reading.samples;
-        currentEEGDataPoint = [se[0], se[1], se[2], se[3]];
+
+        // console.log(isSafeToRecordNextTick, recordedCSV.length, (window.performance.now()-lastTime).toFixed(2));
+        
+        // console.log(reading.electrode, window.performance.now()-lastTime, reading.samples);
+
+        partialDP[reading.electrode] = [se[0]];
+        // partialDP[reading.electrode] = [se[0], se[1], se[2], se[3], se[4], se[5], se[6], se[7], se[8], se[9], se[10], se[11]];
+        // partialDP[reading.electrode] = [(se[0]/2000)+0.5, (se[1]/2000)+0.5, (se[2]/2000)+0.5, (se[3]/2000)+0.5, (se[4]/2000)+0.5, (se[5]/2000)+0.5, (se[6]/2000)+0.5, (se[7]/2000)+0.5, (se[8]/2000)+0.5, (se[9]/2000)+0.5, (se[10]/2000)+0.5, (se[11]/2000)+0.5];
+
+        // currentEEGDataPoint = [se[0], se[1], se[2], se[3]]; //-1000 to 1000
+        // currentEEGDataPoint    = [(se[0]/2000)+0.5, (se[1]/2000)+0.5, (se[2]/2000)+0.5, (se[3]/2000)+0.5]; //0 to 1
+        // currentEEGDataPointRec = [[se[0], se[1], se[2], se[3]], [se[4], se[5], se[6], se[7]], [se[8], se[9], se[10], se[11]]]
+
         // console.log(se);
+
+        if(partialDP[0] !== undefined && partialDP[1] !== undefined && partialDP[2] !== undefined && partialDP[3] !== undefined) {
+          var out = [];
+          for(var i = 0; i < partialDP[0].length; i++) {
+            out.push([partialDP[0][i], partialDP[1][i], partialDP[2][i], partialDP[3][i]]);
+          }
+
+          
+
+          // currentEEGDataPoint = partialDP;
+          currentEEGDataPoint = out;
+          isSafeToRecordNextTick = true;
+          // console.log((window.performance.now()-lastTime).toFixed(2), currentEEGDataPoint);
+          partialDP = [undefined, undefined, undefined, undefined];
+        }
       });
 
       // Setup the subscription to GYR/ACC data
       headset.gyroscopeData.subscribe(reading => {
         var sg = reading.samples;
-        currentGYRDataPoint = [sg[2].x, sg[2].y, sg[2].z];
-        // console.log("GYR", sg);
+        // currentGYRDataPoint = [sg[2].x, sg[2].y, sg[2].z]; //-255 to +255
+        currentGYRDataPoint = [(sg[2].x/510)+0.5, (sg[2].y/510)+0.5, (sg[2].z/510)+0.5]; //0 to 1
+        // console.log("GYR", currentGYRDataPoint);
       });
       headset.accelerometerData.subscribe(reading => {
         var sa = reading.samples;
-        currentACCDataPoint = [sa[2].x, sa[2].y, sa[2].z];
-        // console.log("ACC", sa);
+        // currentACCDataPoint = [sa[2].x, sa[2].y, sa[2].z]; //-2 to +2
+        currentACCDataPoint = [(sa[2].x/4)+0.5, (sa[2].y/4)+0.5, (sa[2].z/4)+0.5]; //0 to 1
+        // console.log("ACC", currentACCDataPoint);
       });
 
       // Setup the subscription to PPG data
       headset.ppgReadings.subscribe(reading => {
         var sp = reading.samples;
         currentPPGDataPoint = [sp[0], sp[1], sp[2]];
+        // console.log("PPG", currentPPGDataPoint);
         // console.log(sp);
       });
 
@@ -362,12 +411,47 @@ function App() {
     } else {
       plotSize = plotSizeOther;
     }
+
+    if(mode == "EEG"){ // The refresh rate is different for different modalities
+      // refreshRate = 1000/256; // 256Hz in ms
+      recordingTime = standardRecordingTime * 3; // we change this since EEG needs every 3 samples
+      refreshRate = 1000/(256/3); // 256Hz in ms // museJS sends every 3 samples, so refresh every 3 steps
+    } else {
+      recordingTime = standardRecordingTime;
+      refreshRate = 1000/64; // 256Hz in ms
+    }
   }
 
+
+  let plotLine = [<div></div>, <div></div>, <div></div>, <div></div>, <div></div>, <div></div>];
+  if (modality == "EEG") {
+    plotLine[0] = <LineChart chartData={museData[0]} chartColor={chartColors[0]} />;
+    plotLine[1] = <LineChart chartData={museData[1]} chartColor={chartColors[1]} />;
+    plotLine[2] = <LineChart chartData={museData[2]} chartColor={chartColors[2]} />;
+    plotLine[3] = <LineChart chartData={museData[3]} chartColor={chartColors[3]} />;
+  }
+  if (modality == "ACC") {
+    plotLine[0] = <LineChart chartData={museData[0]} chartColor={chartColors[0]} />;
+    plotLine[1] = <LineChart chartData={museData[1]} chartColor={chartColors[0]} />;
+    plotLine[2] = <LineChart chartData={museData[2]} chartColor={chartColors[0]} />;
+    plotLine[3] = <LineChart chartData={museData[3]} chartColor={chartColors[4]} />;
+    plotLine[4] = <LineChart chartData={museData[4]} chartColor={chartColors[4]} />;
+    plotLine[5] = <LineChart chartData={museData[5]} chartColor={chartColors[4]} />;
+  }
+  if (modality == "PPG") {
+    plotLine[0] = <LineChartAutoScale chartData={museData[0]} chartColor={chartColors[0]} />;
+    plotLine[1] = <LineChartAutoScale chartData={museData[1]} chartColor={chartColors[2]} />;
+    plotLine[2] = <LineChartAutoScale chartData={museData[2]} chartColor={chartColors[4]} />;
+  }
 
 
   return (
     <div className="App">
+      {/* <Helmet>
+        <meta charSet="utf-8" />
+        <title>My Title</title>
+      </Helmet> */}
+
       <header className="App-header">
         <a href="https://neuralberta.tech" rel="noopener noreferrer">
           <img src={logo} className="App-logo" alt="logo" />
@@ -406,26 +490,87 @@ function App() {
         </div>
 
 
-        {/* For Plotting */}
-        <div className="App-chart-container">
+
+        {/* For Plotting EEG */}
+        {/* <div className={`App-chart-container ${modality == "EEG" ? "" : "App-hidden"}`}>
           <LineChart chartData={museData[0]} chartColor={chartColors[0]} />
         </div>
-        <div className="App-chart-container">
+        <div className={`App-chart-container ${modality == "EEG" ? "" : "App-hidden"}`}>
           <LineChart chartData={museData[1]} chartColor={chartColors[1]} />
         </div>
-        <div className="App-chart-container">
+        <div className={`App-chart-container ${modality == "EEG" ? "" : "App-hidden"}`}>
           <LineChart chartData={museData[2]} chartColor={chartColors[2]} />
         </div>
-        <div className={`App-chart-container ${modality == "PPG" ? "App-hidden" : ""}`}>
+        <div className={`App-chart-container ${modality == "EEG" ? "" : "App-hidden"}`}>
           <LineChart chartData={museData[3]} chartColor={chartColors[3]} />
+        </div> */}
+        {/* For Plotting EEG */}
+
+        {/* For Plotting ACC */}
+        {/* <div className={`App-chart-container ${modality == "ACC" ? "" : "App-hidden"}`}>
+          <LineChart chartData={museData[0]} chartColor={chartColors[0]} />
         </div>
-        <div className={`App-chart-container ${modality == "EEG" || modality == "PPG" ? "App-hidden" : ""}`}>
+        <div className={`App-chart-container ${modality == "ACC" ? "" : "App-hidden"}`}>
+          <LineChart chartData={museData[1]} chartColor={chartColors[0]} />
+        </div>
+        <div className={`App-chart-container ${modality == "ACC" ? "" : "App-hidden"}`}>
+          <LineChart chartData={museData[2]} chartColor={chartColors[0]} />
+        </div>
+        <div className={`App-chart-container ${modality == "ACC" ? "" : "App-hidden"}`}>
+          <LineChart chartData={museData[3]} chartColor={chartColors[4]} />
+        </div>
+        <div className={`App-chart-container ${modality == "ACC" ? "" : "App-hidden"}`}>
           <LineChart chartData={museData[4]} chartColor={chartColors[4]} />
         </div>
-        <div className={`App-chart-container ${modality == "EEG" || modality == "PPG" ? "App-hidden" : ""}`}>
-          <LineChart chartData={museData[5]} chartColor={chartColors[5]} />
+        <div className={`App-chart-container ${modality == "ACC" ? "" : "App-hidden"}`}>
+          <LineChart chartData={museData[5]} chartColor={chartColors[4]} />
+        </div> */}
+        {/* For Plotting ACC */}
+
+        {/* For Plotting PPG */}
+        {/* <div className={`App-chart-container ${modality == "PPG" ? "" : "App-hidden"}`}>
+          <LineChartAutoScale chartData={museData[0]} chartColor={chartColors[0]} />
         </div>
-        {/* For Plotting */}
+        <div className={`App-chart-container ${modality == "PPG" ? "" : "App-hidden"}`}>
+          <LineChartAutoScale chartData={museData[1]} chartColor={chartColors[2]} />
+        </div>
+        <div className={`App-chart-container ${modality == "PPG" ? "" : "App-hidden"}`}>
+          <LineChartAutoScale chartData={museData[1]} chartColor={chartColors[4]} />
+        </div> */}
+        {/* For Plotting PPG */}
+
+
+
+
+
+        <div className={`App-chart-container ${modality == "PPG" || modality == "EEG" || modality == "ACC" ? "" : "App-hidden"}`}>
+          {plotLine[0]}
+        </div>
+        <div className={`App-chart-container ${modality == "PPG" || modality == "EEG" || modality == "ACC" ? "" : "App-hidden"}`}>
+          {plotLine[1]}
+        </div>
+        <div className={`App-chart-container ${modality == "PPG" || modality == "EEG" || modality == "ACC" ? "" : "App-hidden"}`}>
+          {plotLine[2]}
+        </div>
+        <div className={`App-chart-container ${                     modality == "EEG" || modality == "ACC" ? "" : "App-hidden"}`}>
+          {plotLine[3]}
+        </div>
+        <div className={`App-chart-container ${                                          modality == "ACC" ? "" : "App-hidden"}`}>
+          {plotLine[4]}
+        </div>
+        <div className={`App-chart-container ${                                          modality == "ACC" ? "" : "App-hidden"}`}>
+          {plotLine[5]}
+        </div>
+
+
+
+
+
+
+
+
+
+
 
 
         {/* For Generating Static Sample Waves */}
@@ -448,7 +593,7 @@ function App() {
 
 
 
-        <div className={'App-position-lower-right App-button-container'}>
+        <div className={'App-position-lower-right App-button-container App-fade-in-animation'}>
           <div
             className={`App-button App-button-record App-position-lower-right ${isRecordButtonHidden ? "App-hidden" : ""} ${isCurrentlyRecording ? "" : "App-button-record-hover-allowed"}`}
             onClick={beginRecording}
@@ -468,7 +613,7 @@ function App() {
 
 
 
-        <div className={'App-button-container-vertical App-position-lower-left'}>
+        <div className={'App-button-container-vertical App-position-lower-left App-fade-in-animation'}>
           {/* <div
             className={`App-button App-button-fill-space App-button-default`}
             onClick={() => window.open("https://neuralberta.tech/colab", "_blank")}
@@ -502,7 +647,7 @@ function App() {
 
 
         <div
-          className={`App-button App-button-default App-position-lower-center`}
+          className={`App-button App-button-default App-position-lower-center App-fade-in-animation`}
           onClick={() => window.open("https://neuralberta.tech/colab", "_blank")}
         >
           Colab

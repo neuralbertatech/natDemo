@@ -32,14 +32,7 @@ const options = {
     x: {
       display: false,
     },
-    // y: {
-    //   display: false,
-    // },
-    
-
     y: {
-      min: -0.1,
-      max: 1.1,
       display: false,
     }
   },
@@ -49,7 +42,7 @@ const options = {
 }; 
 
 
-function LineChart(args) {
+function LineChartAutoScale(args) {
   const museData = args.chartData || [];
   const color = args.chartColor || '#7967e1';
 
@@ -79,4 +72,4 @@ function LineChart(args) {
   // return canvas;
 }
 
-export default LineChart;
+export default LineChartAutoScale;
