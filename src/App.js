@@ -297,8 +297,7 @@ function App() {
         
         // console.log(reading.electrode, window.performance.now()-lastTime, reading.samples);
 
-        partialDP[reading.electrode] = [se[0]];
-        // partialDP[reading.electrode] = [se[0], se[1], se[2], se[3], se[4], se[5], se[6], se[7], se[8], se[9], se[10], se[11]];
+        partialDP[reading.electrode] = [se[0], se[1], se[2], se[3], se[4], se[5], se[6], se[7], se[8], se[9], se[10], se[11]];
         // partialDP[reading.electrode] = [(se[0]/2000)+0.5, (se[1]/2000)+0.5, (se[2]/2000)+0.5, (se[3]/2000)+0.5, (se[4]/2000)+0.5, (se[5]/2000)+0.5, (se[6]/2000)+0.5, (se[7]/2000)+0.5, (se[8]/2000)+0.5, (se[9]/2000)+0.5, (se[10]/2000)+0.5, (se[11]/2000)+0.5];
 
         // currentEEGDataPoint = [se[0], se[1], se[2], se[3]]; //-1000 to 1000
