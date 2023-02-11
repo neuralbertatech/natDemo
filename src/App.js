@@ -64,6 +64,9 @@ var lastTime = window.performance.now();
 if(modality == "EEG"){ // The refresh rate is different for different modalities
   refreshRate = 1000/(256/12); // 256Hz in ms
   recordingTime = standardRecordingTime * 12;
+} else if (modality == "PPG") {
+  refreshRate = 1000/64; // 256Hz in ms
+  recordingTime = standardRecordingTime * (4 / 3); // /3 makes it 5s, to make it 20s, multiply by 4.
 } else {
   refreshRate = 1000/64; // 256Hz in ms
   recordingTime = standardRecordingTime / 3;
@@ -412,13 +415,23 @@ function App() {
       plotSize = plotSizeOther;
     }
 
-    if(mode == "EEG"){ // The refresh rate is different for different modalities
-      // refreshRate = 1000/256; // 256Hz in ms
-      recordingTime = standardRecordingTime * 12; // we change this since EEG needs every 3 samples
-      refreshRate = 1000/(256/12); // 256Hz in ms // museJS sends every 3 samples, so refresh every 3 steps
-    } else {
-      recordingTime = standardRecordingTime / 3;
+    // if(mode == "EEG"){ // The refresh rate is different for different modalities
+    //   // refreshRate = 1000/256; // 256Hz in ms
+    //   recordingTime = standardRecordingTime * 12; // we change this since EEG needs every 3 samples
+    //   refreshRate = 1000/(256/12); // 256Hz in ms // museJS sends every 3 samples, so refresh every 3 steps
+    // } else {
+    //   recordingTime = standardRecordingTime / 3;
+    //   refreshRate = 1000/64; // 256Hz in ms
+    // }
+    if(modality == "EEG"){ // The refresh rate is different for different modalities
+      refreshRate = 1000/(256/12); // 256Hz in ms
+      recordingTime = standardRecordingTime * 12;
+    } else if (modality == "PPG") {
       refreshRate = 1000/64; // 256Hz in ms
+      recordingTime = standardRecordingTime * (4 / 3); // /3 makes it 5s, to make it 20s, multiply by 4.
+    } else {
+      refreshRate = 1000/64; // 256Hz in ms
+      recordingTime = standardRecordingTime / 3;
     }
   }
 
