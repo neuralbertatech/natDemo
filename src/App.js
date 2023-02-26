@@ -66,7 +66,7 @@ if(modality == "EEG"){ // The refresh rate is different for different modalities
   recordingTime = standardRecordingTime * 12;
 } else if (modality == "PPG") {
   refreshRate = 1000/64; // 256Hz in ms
-  recordingTime = standardRecordingTime * (4 / 3); // /3 makes it 5s, to make it 20s, multiply by 4.
+  recordingTime = standardRecordingTime / 3; // /3 makes it 5s, to make it 20s, multiply by 4.
 } else {
   refreshRate = 1000/64; // 256Hz in ms
   recordingTime = standardRecordingTime / 3;
@@ -86,6 +86,31 @@ function App() {
   // const [modality, setModality] = useState("ACC");
 
   useEffect(() => {
+    // Notify user this only works in chrome if they are not using chrome.
+    var isChromium = window.chrome;
+    var winNav = window.navigator;
+    var vendorName = winNav.vendor;
+    var isOpera = typeof window.opr !== "undefined";
+    var isIEedge = winNav.userAgent.indexOf("Edg") > -1;
+    var isIOSChrome = winNav.userAgent.match("CriOS");
+
+    if (isIOSChrome) {
+      // is Google Chrome on IOS
+      notifyUserBrowserNotSupported();
+    } else if(
+      isChromium !== null &&
+      typeof isChromium !== "undefined" &&
+      vendorName === "Google Inc." &&
+      isOpera === false &&
+      isIEedge === false
+    ) {
+      // is Google Chrome, no notification needed
+    } else { 
+      // not Google Chrome
+      notifyUserBrowserNotSupported();
+    }
+
+
     setTimeout(() => { // So that the modal doesn't take forever to appear when you summon it.
       document.querySelector(':root').style.setProperty('--animation-init-time', '0s');
     }, 2000);
@@ -115,6 +140,8 @@ function App() {
     // Recording
     setInterval(() => {
       if(isCurrentlyRecording && isSafeToRecordNextTick) {
+        console.log(recordedCSV.length, (recordingTime/refreshRate), recordedCSV)
+
         if(modality == "EEG"){
           recordedCSV.push(...currentEEGDataPoint);
         } else if (modality == "ACC") {
@@ -216,6 +243,13 @@ function App() {
 
   }, []);
 
+
+  function notifyUserBrowserNotSupported() {
+    setTimeout(() => {
+      window.alert(
+        `Due to the limited support of the Web Bluetooth API, this application only works in Chrome. \n\nYou may still simulate data using any browser, but the Connect functionality will not work.`);
+    }, 50);
+  }
 
   function dismissModalSimulate() {
     setModalHidden(true);
