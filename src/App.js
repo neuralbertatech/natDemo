@@ -245,6 +245,8 @@ function App() {
 
 
   function notifyUserBrowserNotSupported() {
+
+    
     setTimeout(() => {
       window.alert(
         `Due to the limited support of the Web Bluetooth API, this application only works in Desktop Chrome. \n\nYou may still simulate data using any browser, but the Connect functionality will not work.`);
