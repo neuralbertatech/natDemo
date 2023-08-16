@@ -3,7 +3,7 @@ View online at [https://demo.neuralberta.tech](https://demo.neuralberta.tech)
 
 This app is being developed in Chrome and likely does not work on other browsers.
 
-run `npm i` then `npm start` to start the dev server.
+run `yarn` then `yarn start` to start the dev server.
 
 <!-- 
 # Getting Started with Create React App
