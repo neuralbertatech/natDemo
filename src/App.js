@@ -692,13 +692,13 @@ function App() {
 
 
 
-{/* 
+
         <div
           className={`App-button App-button-default App-position-lower-center App-fade-in-animation`}
           onClick={() => window.open("https://neuralberta.tech/colab", "_blank")}
         >
           Colab
-        </div> */}
+        </div>
       
 
 
