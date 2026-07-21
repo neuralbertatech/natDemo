@@ -39,7 +39,8 @@ var currentACCDataPoint = null;
 var currentGYRDataPoint = null;
 var currentPPGDataPoint = null;
 
-var plotResolution = 0; // Number of points to skip, lower is higher res
+var plotResolution = 1; // Number of points to skip (1 = plot every tick, no skipping)
+var plotIntervalMs = 1000/30; // Fixed ~30fps render rate, decoupled from the sample rate
 var lastNPlotTimes = [];
 var plotResolutionUpdateFrequency = 100;
 var plotResolutionWindow = 100;
@@ -157,27 +158,11 @@ function App() {
     }, refreshRate);
 
 
-    // Vary the plotting rate for performance reasons
-    const plotResTimer = setInterval(() => {
-      lastNPlotTimes.push(window.performance.now()-lastTime);
-      if(lastNPlotTimes.length >= plotResolutionWindow) {lastNPlotTimes.shift();}
-      var lastNAvg = lastNPlotTimes.reduce((a, b) => a + b, 0) / lastNPlotTimes.length;
-
-      if(showPerformanceLogs) {
-        console.log(`${(museRate).toFixed(2).padEnd(6)}` + "| " + `${(window.performance.now()-lastTime).toFixed(5)}ms`.padEnd(15) + "| " +  `${lastNAvg.toFixed(5)}`.padEnd(10) + "| " + `${plotResolution}`);
-        // console.log(`${(window.performance.now()-lastTime).toFixed(5)}ms`.padEnd(15) + "| " +  `${lastNAvg.toFixed(5)}`.padEnd(10) + "| " + `${plotResolution}`, recordingTime, refreshRate, recordingTime/refreshRate);
-      }
-
-      lastTime = window.performance.now();
-
-      if(plotResolutionCount % plotResolutionUpdateFrequency == 0) {
-        if      ( lastNAvg > (museRate)+2 && plotResolution < maxPlotResolution ) { plotResolution += 1; }
-        else if ( lastNAvg < (museRate)+1 && plotResolution > minPlotResolution ) { plotResolution -= 1; }
-        plotResolutionCount = 0;
-      }
-      plotResolutionCount += 1;
-    }, museRate);
-
+    // NOTE: The old adaptive "plotResolution" throttle was removed. It ran on a
+    // 2ms interval and measured its own timer lateness, which on a busy main
+    // thread is always high, so it ramped plotResolution monotonically to its
+    // max and never recovered -- the waveform degraded to a ~2s update. We now
+    // render at a fixed frame rate below (plotIntervalMs) instead.
 
     // Plotting
     let plottingTimer;
@@ -238,7 +223,7 @@ function App() {
       }
       // Set the data
       setMuseData([...museDataGlobal]); // need to do so the ... so React thinks its new
-    }, refreshRate/5);
+    }, plotIntervalMs);
     }
 
     // Clean up all timers on unmount/hot-reload so they don't stack and compound.
@@ -246,7 +231,6 @@ function App() {
       clearTimeout(modalAnimTimer);
       clearInterval(dataGenTimer);
       clearInterval(recordingTimer);
-      clearInterval(plotResTimer);
       if(plottingTimer) { clearInterval(plottingTimer); }
     };
   }, []);
