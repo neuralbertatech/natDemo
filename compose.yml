@@ -1,0 +1,9 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: nat-demo:latest
+    ports:
+      - "8080:80"
+    restart: unless-stopped

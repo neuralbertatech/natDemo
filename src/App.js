@@ -23,8 +23,8 @@ const plotSizeOther = 100;
 const standardRecordingTime = 5000;
 
 
-var museRate = 1000/256;
-var refreshRate = 1000/256;
+var museRate = 512/256;
+var refreshRate = 512/256;
 var recordingTime = standardRecordingTime; // in ms
 var plotSize = plotSizeOther; // Number of points to show at once
 var modality = "EEG";
@@ -39,7 +39,7 @@ var currentACCDataPoint = null;
 var currentGYRDataPoint = null;
 var currentPPGDataPoint = null;
 
-var plotResolution = 3; // Number of points to skip, lower is higher res
+var plotResolution = 0; // Number of points to skip, lower is higher res
 var lastNPlotTimes = [];
 var plotResolutionUpdateFrequency = 100;
 var plotResolutionWindow = 100;
