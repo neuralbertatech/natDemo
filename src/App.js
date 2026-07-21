@@ -20,18 +20,31 @@ const isPlottingEnabled = true;
 
 const plotSizeACC = 50;
 const plotSizeOther = 100;
+const plotSizeEEG = 512; // ~2s window at 256Hz, enough points to show a real waveform
 const standardRecordingTime = 5000;
 
 
 var museRate = 512/256;
 var refreshRate = 512/256;
 var recordingTime = standardRecordingTime; // in ms
-var plotSize = plotSizeOther; // Number of points to show at once
+var plotSize = plotSizeEEG; // Number of points to show at once (modality starts as EEG)
 var modality = "EEG";
 
 // var museDataGlobal = Array(numChannels).fill([]); // makes the waves square for some reason???
 var museDataGlobal = [[],[],[],[],[],[]];
 var dataPointID = 0;
+var simPhase = 0; // sample counter for generating the simulated EEG wave
+
+// Light low-pass smoothing for the EEG trace so it isn't too noisy.
+// alpha is the weight of the newest sample: lower = smoother, 1 = raw/no smoothing.
+const eegSmoothingAlpha = 0.4;
+var eegSmoothState = [null, null, null, null];
+function smoothEEG(channel, value) {
+  var prev = eegSmoothState[channel];
+  var out = prev === null ? value : eegSmoothingAlpha * value + (1 - eegSmoothingAlpha) * prev;
+  eegSmoothState[channel] = out;
+  return out;
+}
 var recordedCSV = [];
 var currentEEGDataPoint = null;
 var currentEEGDataPointPlot = null;
@@ -129,10 +142,34 @@ function App() {
     // Random Data Generation
     const dataGenTimer = setInterval(() => {
       if(isDataSimulated) {
-        currentEEGDataPointPlot = [[Math.random(), Math.random(), Math.random(), Math.random()]];
-        currentACCDataPoint = [Math.random(), Math.random(), Math.random()];
-        currentGYRDataPoint = [Math.random(), Math.random(), Math.random()];
-        currentPPGDataPoint = [Math.random(), Math.random(), Math.random()];
+        if(modality == "EEG") {
+          // Simulated EEG: sum of a few sinusoids + a little noise so it reads like a
+          // real brain wave. This interval fires ~256x/s, so push one sample per tick.
+          simPhase += 1;
+          var t = simPhase / 256;
+          var sample = [];
+          for(var c = 0; c < numEEGChannels; c++) {
+            var v = 0.5
+              + 0.18 * Math.sin(2*Math.PI*10*t + c)       // ~10 Hz (alpha)
+              + 0.08 * Math.sin(2*Math.PI*6*t  + c*1.7)   // ~6 Hz (theta)
+              + 0.05 * Math.sin(2*Math.PI*22*t + c*0.9)   // ~22 Hz (beta)
+              + (Math.random()-0.5) * 0.02;               // noise
+            sample.push(v);
+          }
+          currentEEGDataPointPlot = [sample];
+          currentEEGDataPoint = [sample];
+          if(isPlottingEnabled) {
+            dataPointID += 1;
+            for(var c2 = 0; c2 < numEEGChannels; c2++) {
+              museDataGlobal[c2].push({ id: dataPointID, e1: smoothEEG(c2, sample[c2]) });
+              if(museDataGlobal[c2].length >= plotSize) { museDataGlobal[c2].shift(); }
+            }
+          }
+        } else {
+          currentACCDataPoint = [Math.random(), Math.random(), Math.random()];
+          currentGYRDataPoint = [Math.random(), Math.random(), Math.random()];
+          currentPPGDataPoint = [Math.random(), Math.random(), Math.random()];
+        }
       }
     }, refreshRate/12);
 
@@ -173,19 +210,9 @@ function App() {
         return; // skip every n = plotResolution points for performance reasons
       }
 
-      if(modality == "EEG"){
-        for(var i = 0; i < numEEGChannels; i++) {
-          // Add the data to the array
-          museDataGlobal[i].push({
-            id: dataPointID,
-            e1: currentEEGDataPointPlot[0][i],
-          });
-          // Shift the chart
-          if(museDataGlobal[i].length >= plotSize) {
-            museDataGlobal[i].shift();
-          }
-        }
-      } else if (modality == "ACC") {
+      // EEG samples are pushed at the data rate (subscription / simulated generator),
+      // so this frame timer only needs to redraw for EEG -- see setMuseData below.
+      if (modality == "ACC") {
         for(var i = 0; i < numACCChannels; i++) {
           // Add the data to the array
           museDataGlobal[i].push({
@@ -338,6 +365,19 @@ function App() {
           currentEEGDataPoint = out;
           currentEEGDataPointPlot = outPlot;
           isSafeToRecordNextTick = true;
+
+          // Push every sample in the packet (256Hz) so the live trace shows the
+          // real waveform, rather than sampling one point per render frame.
+          if(isPlottingEnabled && modality == "EEG") {
+            for(var s = 0; s < outPlot.length; s++) {
+              dataPointID += 1;
+              for(var c = 0; c < numEEGChannels; c++) {
+                museDataGlobal[c].push({ id: dataPointID, e1: smoothEEG(c, outPlot[s][c]) });
+                if(museDataGlobal[c].length >= plotSize) { museDataGlobal[c].shift(); }
+              }
+            }
+          }
+
           partialDP = [undefined, undefined, undefined, undefined];
           partialDPPlot = [undefined, undefined, undefined, undefined];
         }
@@ -428,6 +468,7 @@ function App() {
   function switchModality(mode) {
     modality = mode; // Switch
     museDataGlobal = [[],[],[],[],[],[]]; // Empty all arrays
+    eegSmoothState = [null, null, null, null]; // reset EEG smoothing filter
 
     // Kill recording
     isSafeToRecordNextTick = true;
@@ -437,6 +478,8 @@ function App() {
 
     if(mode == "ACC") { // ACC plots a lot.. Cut down the max plot size so performance is constant
       plotSize = plotSizeACC;
+    } else if (mode == "EEG") {
+      plotSize = plotSizeEEG;
     } else {
       plotSize = plotSizeOther;
     }
@@ -464,10 +507,10 @@ function App() {
 
   let plotLine = [<div></div>, <div></div>, <div></div>, <div></div>, <div></div>, <div></div>];
   if (modality == "EEG") {
-    plotLine[0] = <LineChart chartData={museData[0]} chartColor={chartColors[0]} />;
-    plotLine[1] = <LineChart chartData={museData[1]} chartColor={chartColors[1]} />;
-    plotLine[2] = <LineChart chartData={museData[2]} chartColor={chartColors[2]} />;
-    plotLine[3] = <LineChart chartData={museData[3]} chartColor={chartColors[3]} />;
+    plotLine[0] = <LineChartAutoScale chartData={museData[0]} chartColor={chartColors[0]} />;
+    plotLine[1] = <LineChartAutoScale chartData={museData[1]} chartColor={chartColors[1]} />;
+    plotLine[2] = <LineChartAutoScale chartData={museData[2]} chartColor={chartColors[2]} />;
+    plotLine[3] = <LineChartAutoScale chartData={museData[3]} chartColor={chartColors[3]} />;
   }
   if (modality == "ACC") {
     plotLine[0] = <LineChart chartData={museData[0]} chartColor={chartColors[0]} />;
