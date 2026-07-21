@@ -24,7 +24,7 @@ async function connect() {
     dismissModalConnect();
 
     window.headset.eegReadings.subscribe(reading => {
-      console.log(reading.samples);
+      // console.log(reading.samples); // high-frequency log — retains refs and slows the tab
     });
 
     // window.headset.telemetryData.subscribe(telemetry => {

@@ -15,7 +15,7 @@ const numACCChannels = 3;
 const numGYRChannels = 3;
 const numPPGChannels = 3;
 
-const showPerformanceLogs = true;
+const showPerformanceLogs = false;
 const isPlottingEnabled = true;
 
 const plotSizeACC = 50;
@@ -111,7 +111,7 @@ function App() {
     }
 
 
-    setTimeout(() => { // So that the modal doesn't take forever to appear when you summon it.
+    const modalAnimTimer = setTimeout(() => { // So that the modal doesn't take forever to appear when you summon it.
       document.querySelector(':root').style.setProperty('--animation-init-time', '0s');
     }, 2000);
 
@@ -126,7 +126,7 @@ function App() {
     // ]);
 
     // Random Data Generation
-    setInterval(() => {
+    const dataGenTimer = setInterval(() => {
       if(isDataSimulated) {
         currentEEGDataPointPlot = [[Math.random(), Math.random(), Math.random(), Math.random()]];
         currentACCDataPoint = [Math.random(), Math.random(), Math.random()];
@@ -138,9 +138,9 @@ function App() {
     // Reading Data From Muse is Handled in its Own Subscription
 
     // Recording
-    setInterval(() => {
+    const recordingTimer = setInterval(() => {
       if(isCurrentlyRecording && isSafeToRecordNextTick) {
-        console.log(recordedCSV.length, (recordingTime/refreshRate), recordedCSV)
+        if(showPerformanceLogs) { console.log(recordedCSV.length, (recordingTime/refreshRate), recordedCSV); }
 
         if(modality == "EEG"){
           recordedCSV.push(...currentEEGDataPoint);
@@ -158,7 +158,7 @@ function App() {
 
 
     // Vary the plotting rate for performance reasons
-    setInterval(() => {
+    const plotResTimer = setInterval(() => {
       lastNPlotTimes.push(window.performance.now()-lastTime);
       if(lastNPlotTimes.length >= plotResolutionWindow) {lastNPlotTimes.shift();}
       var lastNAvg = lastNPlotTimes.reduce((a, b) => a + b, 0) / lastNPlotTimes.length;
@@ -180,8 +180,9 @@ function App() {
 
 
     // Plotting
+    let plottingTimer;
     if(isPlottingEnabled) {
-    setInterval(() => {
+    plottingTimer = setInterval(() => {
       dataPointID += 1;
       if(dataPointID % plotResolution != 0) {
         return; // skip every n = plotResolution points for performance reasons
@@ -240,7 +241,14 @@ function App() {
     }, refreshRate/5);
     }
 
-
+    // Clean up all timers on unmount/hot-reload so they don't stack and compound.
+    return () => {
+      clearTimeout(modalAnimTimer);
+      clearInterval(dataGenTimer);
+      clearInterval(recordingTimer);
+      clearInterval(plotResTimer);
+      if(plottingTimer) { clearInterval(plottingTimer); }
+    };
   }, []);
 
 
