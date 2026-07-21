@@ -5,10 +5,17 @@ FROM node:18-alpine AS build
 WORKDIR /app
 
 # Install dependencies first for better layer caching.
-COPY package.json ./
-RUN npm install
+# npm ci installs exactly what package-lock.json pins, for reproducible builds.
+COPY package.json package-lock.json ./
+RUN npm ci
 
 # Build the production bundle.
+# DISABLE_ESLINT_PLUGIN: skip CRA's build-time ESLint step. The ESLint tooling
+# pinned in package-lock.json is newer than react-scripts 5 expects and errors
+# out on the bundled config ("jest/globals" env unknown), which fails the build.
+# CI=false: don't treat any remaining warnings as fatal errors.
+ENV DISABLE_ESLINT_PLUGIN=true
+ENV CI=false
 COPY . .
 RUN npm run build
 

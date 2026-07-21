@@ -1,9 +1,9 @@
 services:
   web:
+    image: natnl/muse-demo:latest
     build:
       context: .
       dockerfile: Dockerfile
-    image: nat-demo:latest
     ports:
       - "8080:80"
     restart: unless-stopped
